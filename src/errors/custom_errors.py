@@ -99,3 +99,14 @@ class InvalidBirthdate(QIException):
         description = f"The birthdate {birthdate} is not a real date."
         translation = "A data de nascimento informada não existe."
         super().__init__(title, self.code, http_status, description, translation)
+
+class NotEnoughMoney(QIException):
+
+    code = "QT001008"
+
+    def __init__(self, balance, transaction_money):
+        title = "Not Enough Money"
+        http_status = 422 
+        description = f"The balance of {balance}R$ is not enough to pay the {transaction_money}RS$ transaction"
+        translation = "O saldo é insuficiente para compeltar a transferência"
+        super().__init__(title, self.code, http_status, description, translation)
