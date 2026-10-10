@@ -108,5 +108,61 @@ class NotEnoughMoney(QIException):
         title = "Not Enough Money"
         http_status = 422 
         description = f"The balance of {balance}R$ is not enough to pay the {transaction_money}RS$ transaction"
-        translation = "O saldo é insuficiente para compeltar a transferência"
+        translation = "O saldo é insuficiente para completar a transferência"
         super().__init__(title, self.code, http_status, description, translation)
+
+class DuplicatedAccount(QIException):
+
+    code = "QT001009"
+
+    def __init__(self, student_key):
+        title = "Duplicated Account"
+        http_status = 409 
+        description = f"The student with key {student_key} already has an account created"
+        translation = "O estudante já possui uma conta criada"
+        super().__init__(title, self.code, http_status, description, translation)
+
+class DuplicatedIdempotencyKey(QIException):
+
+    code = "QT001010"
+
+    def __init__(self, idempotency_key):
+        title = "Duplicated Idempotency Key"
+        http_status = 409 
+        description = f"The idempotency key {idempotency_key} already has been used"
+        translation = "O chave de idempotência está duplicada para diferentes transações"
+        super().__init__(title, self.code, http_status, description, translation)
+
+class DeniedDeposit(QIException):
+
+    code = "QT001011"
+
+    def __init__(self, account_key):
+        title = "Denied Deposit"
+        http_status = 409 
+        description = f"The account {account_key} aimed for the deposit can't recieve it"
+        translation = "A conta que deseja-se receber o depósito não pode recebê-lo"
+        super().__init__(title, self.code, http_status, description, translation)
+
+class DeniedOriginAccount(QIException):
+
+    code = "QT001012"
+
+    def __init__(self, account_key):
+        title = "Denied Origin Account"
+        http_status = 409 
+        description = f"The account {account_key} can't transfer"
+        translation = "A conta não pode transferir"
+        super().__init__(title, self.code, http_status, description, translation)
+
+class SelfTransfer(QIException):
+
+    code = "QT001013"
+
+    def __init__(self, account_key):
+        title = "Self Transfer"
+        http_status = 409 
+        description = f"The account {account_key} can't trasnfer to itself"
+        translation = "A conta não pode se auto-transferir"
+        super().__init__(title, self.code, http_status, description, translation)
+
