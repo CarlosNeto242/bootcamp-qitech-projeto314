@@ -30,13 +30,15 @@
 >
 > *5 a 10 linhas. Não entra aqui: solução, rota, tabela, nome de biblioteca.*
 
-O sistema bancário cadastra estudantes de uma universidade, os quais podem criar uma conta, realizar transações tarifadas que se relacionam ao ecossistema universitário (alimentação, mensalidade, bolsa auxílio…) e visualizar seu extrato. O sistema deve possuir as seguintes garantias: 
+O sistema bancário universitário tem como usuário o estudante. Ele pode se cadastrar, criar sua conta, depositar dinheiro para essa conta, transferir dinheiro sob-tarifa para outros(as) estudantes ou entidades do ecossistema universitário e consultar seu extrato. O sistema deve garantir o seguinte:
 
-- Cadastro:  o cadastro só pode ser efetuado por estudantes, os quais só pode se cadastrar uma única vez. Se falhar, passará a existir 2 cadastros iguais, o que poderá ocasionar um conflito nas transações.
-- Transações: entre contas da universidade, uma transação só pode acontecer com o devido saldo. Além disso, a operação deve ser concluída integralmente ou não produzir nenhuma alteração. Se falhar, o cliente ficará com um saldo negativo
+- Cadastro: o cadastro só pode ser efetuado por estudantes, os quais só pode se cadastrar uma única vez. Se falhar, passará a existir 2 cadastros iguais, o que poderá ocasionar um conflito nas transações.
+- Transações: Uma transação só pode acontecer de forma única com o devido saldo. Se falhar, o cliente ficará com um saldo incoerente com os seus gastos
+- Idempotência: Se 2 transações ocorrem ao mesmo tempo, o sistema deve efetuar primeiro uma, depois a outra. Se falhar, algum cliente terá um saldo incoerente
+- Atomicidade: A operação deve ser concluída integralmente ou não produzir nenhuma alteração. Se falhar, poderá gerar "alterações parciais" que podem quebrar o banco de dados.
 - Extrato: as informações de cada transação devem estar armazenadas para o usuário poder visualizar. Se falhar, o usuário não terá o extrato disponível
 
-Fora do escopo da entrega: reembolso, parcelamento de transação, cartão de crédito ou débito e agendamento de transferência.
+Fora do escopo da entrega: validação da origem externa dos depósitos, transação se originando nas contas institucionais, consulta do extrato por contas institucionais 
 
 ### Explicando a solução de forma macro
 
@@ -71,9 +73,11 @@ São 3 entidades utilizadas - `students` , `students_account` e `transaction`. O
 
 | Método | Caminho | O que faz | Entrada (campos que importam) | Saídas (status e quando) |
 |---|---|---|---|---|
-| `POST` | `/student` | … | … | `201` …; `400` …; `409` … |
-|`GET`|`/health_check`|Diz se o servidor está de pé|...|a entender|
+| `POST` | `/student` | cadastra um estudante |`login`, `CPF`|`201` com o `transaction_key`, `400` `QIT000001` corpo fora do formato, `422` `QIT001001` login do estudante não existe|
+|`POST`|`/student_account`| cria a conta bancária de um estudante |`CPF`|`201`, `404` `QIT001001` cadastro de estudante nâo encontrado|
+|`GET`|`/health_check`|Diz se o servidor está de pé||`204`|
 | `GET` | `/student/{student_key}` | devolve um estudante | `student_key` no caminho | `200` …; `404` … |
+|`POST`|`transaction/`|Efetua uma transação de valor `value`|`value`, `origin_account_CPF`, `destination_account_CPF`|`201` com o `transaction_key`, `400` `QIT000001` corpo fora do formato,`422` `QIT001001` cpf do destinatário não está vinculado a uma conta cadastrada, `422` `QIT001008` valor de saldo insuficiente |
 | … | … | … | … | … |
 
 ### Banco de Dados (Somente diagrama)
@@ -85,18 +89,24 @@ São 3 entidades utilizadas - `students` , `students_account` e `transaction`. O
 > diagrama.*
 
 ```mermaid
-erDiagram
-    ENTIDADE_A ||--o{ ENTIDADE_B : "<verbo da relação>"
-    ENTIDADE_A {
-        tipo identificador_publico PK "<o que sai na resposta>"
-        tipo campo_unico           UK "<o que garante unicidade>"
-    }
-    ENTIDADE_B {
-        tipo identificador_publico PK
-        tipo entidade_a_id         FK
-        tipo estado                   "<o que guarda estado>"
-        tipo criado_em                "<quando aconteceu>"
-    }
+    erDiagram
+    student ||--o{ student_account: ""
+    transaction || --o{ student_account: "histórico de transações"
+        transaction {
+            char(36) transaction_key PK "sai o id único da transação"
+            float value "informa o valor monetário da transação"
+            char(36) origin_account_CPF FK "vê o id da conta de quem que transferiu"
+            char(36) destinantion_account_CPF FK "vê o id da conta de quem recebeu quem recebeu"
+        }
+        student {
+            char(36) student_key PK "sai o id único do cadastro do estudante"
+            String(255) login "login do estudante dentro da faculdade"
+            String(255) CPF "documento do estudante"
+        }
+        student_account { 
+            char(36) id PK "id local da conta"
+            String(255) account_key "id universal da conta"
+        }
 ```
 
 ### Fluxos
@@ -109,6 +119,10 @@ erDiagram
 > *Onde houver transação, concorrência ou retentativa, o passo diz o que acontece: o que é travado,
 > o que é desfeito, o que o cliente recebe de volta. Não entra aqui: repetir o que a tabela de rotas
 > já disse.*
+
+![Fluxo criação de conta](image.png)
+![Fluxo de transação](image-1.png)
+![Fluxo de cadastro](image-2.png)
 
 **\<operação\> — caminho feliz**
 
