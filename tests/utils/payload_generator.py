@@ -1,49 +1,22 @@
-from uuid import uuid4
-
-from tests.utils.random_generator import RandomGenerator
+from tests.utils.object_generator import CANTEEN_ACCOUNT_KEY
 
 
 class PayloadGenerator:
     @staticmethod
-    def create_sample_entity_payload(
-        hello: str = None,
-        name: str = None,
-        email: str = None,
-        document_number: str = None,
-        birthdate: str = None,
+    def create_transfer_payload(
+        origin_account_key: str = None,
+        destination_account_key: str = None,
+        value: int = None,
     ) -> dict:
-        """Um cadastro valido, com qualquer campo trocado a pedido.
+        if destination_account_key is None:
+            destination_account_key = CANTEEN_ACCOUNT_KEY
 
-        Sem argumento nenhum o payload sai aleatorio no que precisa ser
-        unico (e-mail e CPF), pra que dois cadastros seguidos nao batam
-        na regra de duplicidade. Quem testa FILTRO precisa do contrario
-        disso: um valor conhecido, pra poder procurar por ele depois.
-        """
-        if hello is None:
-            hello = "world"
-
-        if name is None:
-            name = "Maria da Silva"
-
-        if email is None:
-            email = f"maria.silva.{uuid4()}@exemplo.com.br"
-
-        if document_number is None:
-            document_number = RandomGenerator.generate_cpf()
-
-        if birthdate is None:
-            birthdate = "1990-05-17"
+        if value is None:
+            value = 1000
 
         payload = {
-            "hello": hello,
-            "name": name,
-            "email": email,
-            "document_number": document_number,
-            "birthdate": birthdate,
+            "origin_account_key": origin_account_key,
+            "destination_account_key": destination_account_key,
+            "value": value,
         }
-        return payload
-
-    @staticmethod
-    def create_new_status_payload(new_status: str = None) -> dict:
-        payload = {"status": new_status}
         return payload
