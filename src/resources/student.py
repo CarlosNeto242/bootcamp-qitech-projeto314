@@ -3,7 +3,7 @@ from fastapi import status as http_status
 from fastapi.encoders import jsonable_encoder
 from fastapi.responses import JSONResponse
 
-from controllers import SampleEntityController
+from controllers.student_controller import StudentController
 from utils.schema_handler import SchemaHandler
 
 DEFAULT_LIMIT = 10
@@ -15,7 +15,7 @@ class StudentResource:
     @SchemaHandler.validate("post_student.json")
     def on_post(self, payload: dict) -> JSONResponse:
 
-        controller = SampleEntityController()
+        controller = StudentController()
         sample_entity = controller.create(payload)
 
         return JSONResponse(
@@ -24,7 +24,7 @@ class StudentResource:
         )
 
     def on_get_by_key(self, sample_entity_key: str) -> JSONResponse:
-        controller = SampleEntityController()
+        controller = StudentController()
         sample_entity = controller.get_by_key(sample_entity_key)
 
         return JSONResponse(
@@ -34,7 +34,7 @@ class StudentResource:
 
     @SchemaHandler.validate("put_sample_entity.json")
     def on_put_by_key(self, sample_entity_key: str, payload: dict) -> JSONResponse:
-        controller = SampleEntityController()
+        controller = StudentController()
         sample_entity = controller.update_status(sample_entity_key, payload["status"])
 
         return JSONResponse(
@@ -43,14 +43,14 @@ class StudentResource:
         )
 
     def on_put_increment_counter(self, sample_entity_key: str) -> Response:
-        controller = SampleEntityController()
+        controller = StudentController()
         controller.webhook_increment_counter(sample_entity_key)
         return Response(status_code=http_status.HTTP_204_NO_CONTENT)
 
     @SchemaHandler.validate_query_params("get_sample_entities.json")
     def on_get_list(self, request: Request) -> JSONResponse:
 
-        controller = SampleEntityController()
+        controller = StudentController()
 
         query_params = request.query_params
 

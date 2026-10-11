@@ -1,6 +1,6 @@
 from os import environ
 
-from tests.utils.requisition import ClientRequisition
+from tests.utils.requisition import ClientRequisition, BaseConnectorResponse
 
 
 INTERNAL_TOKEN = environ.get("INTERNAL_TOKEN", "default_token")
