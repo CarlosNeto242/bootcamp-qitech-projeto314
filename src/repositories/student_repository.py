@@ -4,7 +4,6 @@ from database import Context
 from models.student import Student 
 
 class StudentRepository:
-
     def __init__(self, context: Context) -> None:
         self.session = context.db_session
 
@@ -27,7 +26,6 @@ class StudentRepository:
         return self.session.query(Student).filter(Student.document_number == document_number).first()
 
     def list_page(self, limit: int, offset: int) -> list:
-
         query = self.session.query(Student).order_by(Student.created_at.desc(), Student.id.desc())
 
         return query.limit(limit + 1).offset(offset).all()

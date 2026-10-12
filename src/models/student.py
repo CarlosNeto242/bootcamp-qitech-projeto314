@@ -3,7 +3,6 @@ from models.base import Base
 
 
 class Student(Base):
-
     __tablename__ = "student"
 
     id = Column(Integer, primary_key=True)

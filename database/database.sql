@@ -29,9 +29,9 @@ CREATE TABLE account(
 );
 
 INSERT INTO account (account_key, student_id, type, status) VALUES
-('26ccf53d-7a91-41bf-acc2-09a93743f423', NULL, 'INSTITUTIONAL', 'ACTIVE'), --universidade
-('06d8b86d-6d68-402d-9c8a-e089230f16ce', NULL, 'INSTITUTIONAL', 'ACTIVE'), --cantina
-('e2f33a85-efb7-4bc5-afde-4ffe5229f7f3', NULL, 'INSTITUTIONAL', 'ACTIVE'); --estacionamento
+('26ccf53d-7a91-41bf-acc2-09a93743f423', NULL, 'INSTITUTIONAL', 'ACTIVE'),
+('06d8b86d-6d68-402d-9c8a-e089230f16ce', NULL, 'INSTITUTIONAL', 'ACTIVE'),
+('e2f33a85-efb7-4bc5-afde-4ffe5229f7f3', NULL, 'INSTITUTIONAL', 'ACTIVE');
 
 CREATE TABLE transaction(
     id                              SERIAL PRIMARY KEY,

@@ -1,10 +1,8 @@
 from tests.utils.mock_utils import BaseExpectation, Mock
 
 class UniversityMock:
-
     @staticmethod
     def GET_university_student(document_number: str):
-
         mock = Mock()
 
         mock.add_expectations(

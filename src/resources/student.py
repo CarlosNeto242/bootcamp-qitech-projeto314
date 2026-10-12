@@ -11,10 +11,8 @@ DEFAULT_PAGE = 0
 
 
 class StudentResource:
-
     @SchemaHandler.validate("post_student.json")
     def on_post(self, payload: dict) -> JSONResponse:
-
         controller = StudentController()
         student = controller.create(payload)
 

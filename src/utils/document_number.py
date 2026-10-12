@@ -4,7 +4,6 @@ CHECK_DIGIT_POSITIONS = [9, 10]
 
 
 def is_valid_cpf(document_number: str) -> bool:
-
     digits = []
     for character in document_number:
         if character.isdigit():

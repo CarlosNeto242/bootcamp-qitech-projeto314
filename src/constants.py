@@ -3,9 +3,6 @@ import os
 
 SERVICE_ROOT = os.path.abspath(os.path.dirname(__file__))
 
-# Onde moram os arquivos de schema — os .json que descrevem o formato
-# que cada requisicao precisa ter. Quem le essa pasta e o
-# src/utils/schema_handler.py.
 SCHEMA_PATH = os.path.join(SERVICE_ROOT, "schemas")
 
 APP_ENV = os.environ.get("APP_ENV", "local")
@@ -14,24 +11,12 @@ SERVICE_NAME = os.environ.get("SERVICE_NAME", "bootcamp-api")
 DATABASE_URL = os.environ.get("DATABASE_URL")
 INTERNAL_TOKEN = os.environ.get("INTERNAL_TOKEN")
 
-# A API de boletos: o serviço de fora que este projeto chama pra emitir
-# uma cobrança (veja src/connectors/). O endereço vem do ambiente, como
-# tudo aqui — na sua máquina ele aponta pro mock server do sábado 4; em
-# produção, apontaria pro serviço de verdade. O código não sabe a
-# diferença, e esse é o ponto.
 FEE_ACCOUNT_KEY = os.environ.get("FEE_ACCOUNT_KEY", "26ccf53d-7a91-41bf-acc2-09a93743f423")
 UNIVERSITY_API_URL = os.environ.get("UNIVERSITY_API_URL", "http://localhost:1080")
 UNIVERSITY_API_INTERNAL_TOKEN = os.environ.get("UNIVERSITY_API_INTERNAL_TOKEN", "default_token")
 
-# Quantos segundos esperar pelo serviço de boletos antes de desistir.
-# Todo connector TEM um timeout — o porquê está em
-# src/connectors/rest_connector.py.
 UNIVERSITY_API_TIMEOUT = int(os.environ.get("UNIVERSITY_API_TIMEOUT", "5"))
 
-# Rotas públicas: não exigem o header INTERNAL-TOKEN. São as duas que
-# precisam responder pra quem ainda não tem token nenhum: a raiz, que
-# diz quem é este serviço, e o health check, que o Docker consulta pra
-# saber se a API já está de pé.
 BYPASS_ENDPOINTS = [
     "/",
     "/health_check",
