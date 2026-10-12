@@ -2,16 +2,20 @@ import re
 from concurrent.futures import ThreadPoolExecutor
 from threading import Barrier
 
-from tests.utils import ObjectGenerator, PayloadGenerator, RequestGenerator
+from tests.utils import PayloadGenerator, RequestGenerator
 from tests.utils.mock_generator import UniversityMock
 from tests.utils.mock_utils import Mock
 
-def extract_keys(response: dict) -> list:
-    student_keys = []
-    for student in response["data"]:
-        student_keys.append(student["account_key"])
-    return student_keys
 UUID_PATTERN = re.compile(r"^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$")
+
+
+def assert_document_number_was_not_registered(payload: dict) -> None:
+    Mock().clear()
+    UniversityMock.GET_university_student(payload["document_number"])
+
+    status, _ = RequestGenerator.POST_student(payload)
+
+    assert status == 201
 
 
 class TestStudent:
@@ -43,7 +47,9 @@ class TestStudent:
 
         assert status == 201
         assert UUID_PATTERN.match(response["student_key"])
-        assert ObjectGenerator.count_students(payload["document_number"]) == 1
+        status, response = RequestGenerator.POST_student(payload)
+        assert status == 409
+        assert response["code"] == "QIT001004"
 
     def test_refuses_student_not_recognized_by_university(self):
         payload = PayloadGenerator.create_student_payload()
@@ -53,7 +59,7 @@ class TestStudent:
 
         assert status == 422
         assert response["code"] == "QIT001003"
-        assert ObjectGenerator.count_students(payload["document_number"]) == 0
+        assert_document_number_was_not_registered(payload)
 
     def test_refuses_duplicated_document_number(self):
         payload = PayloadGenerator.create_student_payload()
@@ -65,7 +71,6 @@ class TestStudent:
         assert first_status == 201
         assert second_status == 409
         assert second_response["code"] == "QIT001004"
-        assert ObjectGenerator.count_students(payload["document_number"]) == 1
 
     def test_university_check_comes_before_duplicated_document_number(self):
         payload = PayloadGenerator.create_student_payload()
@@ -90,7 +95,7 @@ class TestStudent:
 
         assert status == 503
         assert response["code"] == "QIT001014"
-        assert ObjectGenerator.count_students(payload["document_number"]) == 0
+        assert_document_number_was_not_registered(payload)
 
     def test_university_timeout_returns_unavailable(self):
         payload = PayloadGenerator.create_student_payload()
@@ -100,7 +105,7 @@ class TestStudent:
 
         assert status == 503
         assert response["code"] == "QIT001014"
-        assert ObjectGenerator.count_students(payload["document_number"]) == 0
+        assert_document_number_was_not_registered(payload)
 
     def test_university_server_error_returns_unavailable(self):
         payload = PayloadGenerator.create_student_payload()
@@ -110,7 +115,7 @@ class TestStudent:
 
         assert status == 503
         assert response["code"] == "QIT001014"
-        assert ObjectGenerator.count_students(payload["document_number"]) == 0
+        assert_document_number_was_not_registered(payload)
 
     def test_simultaneous_same_document_number_only_one_passes(self):
         payload = PayloadGenerator.create_student_payload()
@@ -129,4 +134,3 @@ class TestStudent:
 
         assert statuses == [201, 409]
         assert codes == ["QIT001004"]
-        assert ObjectGenerator.count_students(payload["document_number"]) == 1

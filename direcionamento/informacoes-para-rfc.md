@@ -1,6 +1,6 @@
 # Material de apoio para a RFC
 
-Estado do repositório em **12/10/2026**, na `main` local com o commit `1231436` ("controler do deposit e correcoes nas rotas student e account"). Tudo aqui foi conferido no código e nos testes. Nada vem de memória ou de rascunho.
+Estado do repositório em **12/10/2026**, na `main` com o commit `eed2c81` ("close e extrato, os testes agora só usam as rotas"). Tudo aqui foi conferido no código e nos testes. Nada vem de memória ou de rascunho.
 
 As seções seguem a ordem do `bootcamp-rfc-modelo.md`, para facilitar copiar cada parte para o lugar certo. No fim há uma lista do que o rascunho atual da RFC (`bootcamp-rfc-modelo.md`) diz e que **não bate mais** com o código.
 
@@ -10,7 +10,7 @@ As seções seguem a ordem do `bootcamp-rfc-modelo.md`, para facilitar copiar ca
 
 ### 1.1 O problema
 
-Serviço bancário universitário, só de backend. O único usuário é o **estudante**: ele se cadastra, cria uma conta, deposita, transfere para outros estudantes ou para instituições da universidade (cantina, estacionamento) e consulta saldo e extrato. Todo o dinheiro circula dentro do ecossistema: depois de entrar por depósito, ele não sai, porque não existe saque.
+Serviço bancário universitário, só de backend. O único usuário é o **estudante**: ele se cadastra, cria uma conta, deposita, transfere para outros estudantes ou para instituições da universidade (cantina, estacionamento), consulta saldo e extrato e encerra a conta. Todo o dinheiro circula dentro do ecossistema: depois de entrar por depósito, ele não sai, porque não existe saque.
 
 Garantias que o sistema precisa dar:
 - **Sem saldo negativo:** uma transferência só acontece se a origem tiver saldo para o valor mais a tarifa, inclusive quando várias requisições chegam ao mesmo tempo.
@@ -18,6 +18,7 @@ Garantias que o sistema precisa dar:
 - **Atomicidade:** a transferência e a tarifa são gravadas juntas, ou nenhuma das duas é gravada.
 - **Saldo reconstruível:** o saldo é sempre a soma das movimentações. Não existe um saldo guardado que possa divergir do histórico.
 - **Cadastro único e verificado:** um CPF só se cadastra uma vez, e só se a universidade confirmar que é de um aluno. Cada estudante tem no máximo uma conta.
+- **Nenhum dinheiro preso:** uma conta só é encerrada com saldo zero, e nenhum depósito ou transferência entra numa conta que está sendo encerrada.
 
 Se der errado: saldo negativo, transferência duplicada, tarifa cobrada sem transferência (ou o contrário), ou uma pessoa que não é aluna dentro do sistema.
 
@@ -25,7 +26,7 @@ Se der errado: saldo negativo, transferência duplicada, tarifa cobrada sem tran
 
 ### 1.2 A solução de forma macro
 
-Três tabelas: `student`, `account` e `transaction`. O estudante é verificado junto ao servidor da universidade e só então gravado. Cada estudante tem no máximo uma conta `STUDENT`. As contas `INSTITUTIONAL` (universidade, cantina e estacionamento) são criadas por seed e só recebem dinheiro. **Toda movimentação é uma linha em `transaction`**, de um dos três tipos: `DEPOSIT`, `TRANSFER` ou `FEE`. O saldo não é armazenado: ele é calculado somando as linhas em que a conta é destino e subtraindo as linhas em que ela é origem. Cada transferência gera também uma `FEE` de R$ 2,00 para a conta da universidade, que funciona como conta de tarifas.
+Três tabelas: `student`, `account` e `transaction`. O estudante é verificado junto ao servidor da universidade e só então gravado. Cada estudante tem no máximo uma conta `STUDENT`. As contas `INSTITUTIONAL` (universidade, cantina e estacionamento) são criadas por seed e só recebem dinheiro. **Toda movimentação é uma linha em `transaction`**, de um dos três tipos: `DEPOSIT`, `TRANSFER` ou `FEE`. O saldo não é armazenado: ele é calculado somando as linhas em que a conta é destino e subtraindo as linhas em que ela é origem. Cada transferência gera também uma `FEE` de R$ 2,00 para a conta da universidade, que funciona como conta de tarifas. O estudante pode encerrar a própria conta quando o saldo dela for zero, e a partir daí a conta não movimenta nem pode ser consultada.
 
 Concorrência e repetição são tratadas no banco: **lock pessimista** (`SELECT ... FOR UPDATE`) nas contas de estudante envolvidas, em ordem fixa de `id`, e uma **chave de idempotência** (`Idempotency-Key`) por operação, protegida por uma restrição `UNIQUE`.
 
@@ -53,8 +54,22 @@ Valores em **centavos**. `value` é inteiro, de 1 a **200.000.000** (R$ 2.000.00
 | `POST` | `/account` | Cria a conta do estudante. Sempre `STUDENT` e `ACTIVE` | Corpo: `student_key` (UUID) | `201` com `account_key` e `status`; `400 QIT000001` corpo fora do formato; `404 QIT001001` estudante não existe; `409 QIT001009` estudante já tem conta | Não. Repetir dá `409` |
 | `POST` | `/deposit` | Deposita na conta de um estudante | Corpo: `account_key` (UUID), `value`. Header: `Idempotency-Key` (UUID) | `201` com `transaction_key`; `400 QIT000001` corpo ou header fora do formato; `404 QIT001001` conta não existe; `409 QIT001011` conta institucional; `409 QIT001002` conta `CLOSED`; `409 QIT001010` chave já usada em outra operação | **Sim**, pela `Idempotency-Key` |
 | `POST` | `/transfer` | Transfere de um estudante para outro estudante ou para uma instituição, cobrando a tarifa | Corpo: `origin_account_key`, `destination_account_key` (UUIDs), `value`. Header: `Idempotency-Key` (UUID) | `201` com `transaction_key` da `TRANSFER`; `400 QIT000001` corpo ou header fora do formato; `409 QIT001013` origem e destino iguais; `409 QIT001015` destino é a conta de tarifas; `404 QIT001001` alguma conta não existe; `409 QIT001012` origem institucional; `409 QIT001002` origem ou destino `CLOSED`; `409 QIT001008` saldo menor que `value` + 200; `409 QIT001010` chave já usada em outra operação | **Sim**, pela `Idempotency-Key` |
-| `GET` | `/account/{account_key}` | Conta com saldo calculado | `account_key` no caminho | **Não implementada** | — |
-| `GET` | `/account/{account_key}/transactions` | Extrato paginado | Caminho: `account_key`. Query: `page` (≥ 0), `limit` (1 a 100) | **Não implementada** | — |
+| `GET` | `/account/{account_key}` | Conta com saldo calculado | `account_key` no caminho | `200` com `account_key`, `type`, `status`, `balance` e `created_at` (ISO 8601 com `+00:00`); `400 QIT000001` chave fora do formato; `404 QIT001001` conta não existe; `409 QIT001002` conta `CLOSED` | Sim (leitura) |
+| `GET` | `/account/{account_key}/transactions` | Extrato paginado, do mais recente para o mais antigo | Caminho: `account_key`. Query: `page` (inteiro ≥ 0, padrão 0), `limit` (inteiro de 1 a 100, padrão 10) | `200` com `data`, `limit`, `page` e `is_last_page`; `400 QIT000001` chave ou parâmetro fora do formato, ou parâmetro desconhecido; `404 QIT001001` conta não existe; `409 QIT001002` conta `CLOSED` | Sim (leitura) |
+| `POST` | `/account/{account_key}/close` | Encerra a conta de um estudante | `account_key` no caminho. Sem corpo | `200` com `account_key` e `status = CLOSED`; `400 QIT000001` chave fora do formato; `404 QIT001001` conta não existe; `409 QIT001017` conta institucional; `409 QIT001002` conta já `CLOSED`; `409 QIT001016` saldo diferente de zero | Não. Repetir dá `409 QIT001002` |
+
+**Extrato:** cada linha de `data` traz `transaction_key`, `transaction_type`, `amount`, `counterparty_type`, `counterparty_name`, `counterparty_account_key` e `created_at`.
+- `amount` é relativo à conta consultada: `+value` quando ela é o destino e `-value` quando é a origem. Não é o saldo.
+- A outra ponta da movimentação:
+
+| Outra ponta | `counterparty_type` | `counterparty_name` | `counterparty_account_key` |
+|---|---|---|---|
+| Estudante | `STUDENT` | nome do estudante | `null` (a chave de um estudante é credencial e não pode aparecer no extrato de outro) |
+| Instituição | `INSTITUTIONAL` | `null` | chave da instituição |
+| Nenhuma (depósito) | `null` | `null` | `null` |
+
+- A ordem é `created_at DESC, id DESC`. Como a `TRANSFER` e a `FEE` são gravadas juntas e têm o mesmo `created_at`, o desempate por `id` coloca a `FEE` logo acima da `TRANSFER`.
+- A paginação busca `limit + 1` linhas para saber se há próxima página, sem contar o total. Conta sem movimentação, ou página além da última, devolve `200` com `data` vazio e `is_last_page = true`.
 
 **Como a idempotência funciona em `/deposit` e `/transfer`:**
 - Mesma `Idempotency-Key` com **os mesmos dados** (mesmo tipo, mesmo `value` e mesmas contas): retry. A resposta é `201` com a `transaction_key` **original**, e nada é gravado de novo.
@@ -211,6 +226,51 @@ O `ROLLBACK` não aparece nos passos: qualquer erro levantado dentro de uma tran
 2. A primeira grava a `TRANSFER`. O `INSERT` da segunda viola o `uq_transaction_idempotency_key`.
 3. A API reconhece **essa** restrição e responde `409 QIT001010`. Qualquer outra violação vira `500`.
 
+### 4.5 `GET /account/{account_key}`
+
+**Caminho feliz**
+1. O resource valida a `account_key` do caminho (formato UUID).
+2. A chave é convertida para minúsculas, e a API busca a conta.
+3. A conta não está `CLOSED`.
+4. A API calcula o saldo e responde `200`. É só leitura: sem lock e sem escrita.
+
+**Falha: conta encerrada**
+1. A conta existe, mas está `CLOSED`.
+2. `409 QIT001002`. Nenhum dado da conta é devolvido.
+
+O saldo devolvido é uma fotografia do instante e não serve como checagem antes de transferir. Quem decide se há saldo é o `/transfer`, com lock.
+
+### 4.6 `GET /account/{account_key}/transactions`
+
+**Caminho feliz**
+1. O decorator `validate_query_params` do `base-service` valida `page` e `limit` contra um JSON Schema, e o resource valida a `account_key`.
+2. A API busca a conta (`404` se não existir, `409 QIT001002` se estiver `CLOSED`).
+3. Uma consulta só traz as transações em que a conta é origem ou destino, já com o `amount` com sinal e com a outra ponta por `LEFT JOIN` em `account` e `student`, em `ORDER BY created_at DESC, id DESC`, com `LIMIT limit + 1` e `OFFSET page × limit`.
+4. Se vieram mais de `limit` linhas, a extra é descartada e `is_last_page = false`. Senão, `is_last_page = true`.
+5. O DTO monta cada linha: o nome só sai se a outra ponta for estudante, e a chave só sai se for instituição.
+6. `200` com o envelope `data`, `limit`, `page` e `is_last_page`.
+
+**Falha: página além da última**
+1. O `OFFSET` passa do total de linhas.
+2. `200` com `data` vazio e `is_last_page = true`. Não é erro.
+
+### 4.7 `POST /account/{account_key}/close`
+
+**Caminho feliz**
+1. O resource valida a `account_key`.
+2. A transação é aberta com isolamento `READ COMMITTED`.
+3. A API busca a conta. Se não existir, `404`. Se for institucional, `409 QIT001017`. Essa checagem vem antes do lock, porque o `type` nunca muda.
+4. `SELECT ... FOR UPDATE` na conta, o **mesmo lock** do `/deposit` e do `/transfer`.
+5. A conta não está `CLOSED`.
+6. O saldo, calculado **depois do lock**, é zero.
+7. `UPDATE` do `status` para `CLOSED`, `COMMIT` e `200`.
+
+**Falha: depósito e encerramento ao mesmo tempo**
+1. As duas requisições disputam o lock da conta.
+2. Se o encerramento trava primeiro, ele vê saldo zero e fecha. O depósito espera, lê o `status` atualizado junto com o lock e recebe `409 QIT001002`.
+3. Se o depósito trava primeiro, ele grava. O encerramento espera, calcula o saldo depois do lock, vê o valor depositado e recebe `409 QIT001016`.
+4. Em nenhuma ordem a conta termina fechada com dinheiro dentro.
+
 > ## Principal desafio
 >
 > - **Qual é:** garantir que o saldo nunca fique negativo e que nenhuma operação aconteça duas vezes, com várias requisições simultâneas sobre as mesmas contas.
@@ -235,8 +295,8 @@ Cada código tem um único status e uma única causa. A API não sobe se dois er
 | `QIT000404` | 404 | Rota inexistente (do `base-service`) | — |
 | `QIT000405` | 405 | Método não permitido na rota (do `base-service`) | — |
 | `QIT000500` | 500 | Erro inesperado | Todas |
-| `QIT001001` | 404 | Estudante ou conta referenciado não existe | `/account`, `/deposit`, `/transfer` |
-| `QIT001002` | 409 | Conta `CLOSED` | `/deposit`, `/transfer` |
+| `QIT001001` | 404 | Estudante ou conta referenciado não existe | `/account`, `/deposit`, `/transfer`, `GET /account/{account_key}`, extrato, encerramento |
+| `QIT001002` | 409 | Conta `CLOSED` | `/deposit`, `/transfer`, `GET /account/{account_key}`, extrato, encerramento |
 | `QIT001003` | 422 | CPF não corresponde a um estudante da universidade | `/student` |
 | `QIT001004` | 409 | CPF já cadastrado | `/student` |
 | `QIT001008` | 409 | Saldo insuficiente para `value` mais a tarifa | `/transfer` |
@@ -247,6 +307,8 @@ Cada código tem um único status e uma única causa. A API não sobe se dois er
 | `QIT001013` | 409 | Origem e destino são a mesma conta | `/transfer` |
 | `QIT001014` | 503 | Verificação junto à universidade não pôde ser concluída | `/student` |
 | `QIT001015` | 409 | A conta de destino não aceita transferência (é a conta de tarifas) | `/transfer` |
+| `QIT001016` | 409 | A conta só pode ser encerrada com saldo zero | encerramento |
+| `QIT001017` | 409 | Só contas de estudante podem ser encerradas | encerramento |
 
 Formato de toda resposta de erro: `{"title", "description", "translation", "code"}`. As mensagens não incluem CPF, nome nem chaves.
 
@@ -254,19 +316,24 @@ Formato de toda resposta de erro: `{"title", "description", "translation", "code
 
 ## 6. Testes
 
-**50 testes de integração, todos passando.** Eles chamam a API real (no Docker) por HTTP.
+**80 testes de integração, todos passando.** Eles chamam a API real (no Docker) **só por HTTP**: nenhum teste lê ou escreve no banco. Até a preparação dos dados (estudante, conta, saldo e encerramento) passa pelas rotas, pelo helper `ObjectGenerator`.
 
 | Arquivo | Testes | O que cobrem |
 |---|---|---|
 | `test_healthcheck.py` | 6 | Rota raiz, health check, `403` sem token, `404` e `405` do framework |
-| `student/test_student.py` | 9 | Corpo inválido (8 casos), sucesso, `422` não é aluno, `409` CPF duplicado, universidade consultada antes do `409`, `503` por queda de conexão, timeout e erro da universidade, e dois cadastros simultâneos do mesmo CPF |
-| `account/test_account.py` | 5 | Corpo inválido, `404`, sucesso (tipo, status, estudante, saldo 0), `409` conta duplicada e duas criações simultâneas |
+| `student/test_student.py` | 9 | Corpo inválido (8 casos), sucesso, `422` não é aluno, `409` CPF duplicado, universidade consultada antes do `409`, `503` por queda de conexão, timeout e erro da universidade, e dois cadastros simultâneos do mesmo CPF. Depois de cada recusa, o teste cadastra o mesmo CPF de novo para provar que nada foi gravado |
+| `account/test_account.py` | 5 | Corpo inválido, `404`, sucesso (tipo, status e saldo 0), `409` conta duplicada e duas criações simultâneas |
+| `account/test_account_get.py` | 8 | Chave inválida, `404`, sucesso com exatamente os cinco campos, chave em maiúsculas, saldo zero, saldo depois de transferência e tarifa, conta `CLOSED` recusada e conta institucional |
+| `account/test_account_transactions.py` | 12 | Parâmetros inválidos (7 casos), `404`, `CLOSED`, última página, página que não é a última, total múltiplo exato do `limit`, página além da última, conta vazia, padrões de `page` e `limit`, linha de depósito, transferência vista pelos dois lados (com a `FEE` logo acima e a privacidade da outra ponta) e transferência para instituição |
+| `account/test_account_close.py` | 10 | Chave inválida, `404`, institucional, saldo de 1 centavo recusado, encerramento com saldo zero, depósito recusado depois do encerramento, encerrar duas vezes, encerrar depois de esvaziar por transferência, chave em maiúsculas e depósito e encerramento simultâneos |
 | `deposit/test_deposit_create.py` | 11 | Corpo e header inválidos, `404`, institucional, `CLOSED`, sucesso sem tarifa, retry, chave com dados diferentes, retry depois de `CLOSED`, falha que não consome a chave e o teto do `value` |
 | `deposit/test_deposit_concurrency.py` | 1 | A mesma chave em duas contas ao mesmo tempo: um `201` e um `409` |
-| `transfer/test_transfer_create.py` | 16 | Corpo e header inválidos, todos os `404` e `409`, saldo exato (`value` + 200 passa, + 199 falha), tarifa gravada e ligada à `TRANSFER`, destino na universidade bloqueado, retry, retry depois de `CLOSED`, falha que não consome a chave e chave usada por depósito |
+| `transfer/test_transfer_create.py` | 16 | Corpo e header inválidos, todos os `404` e `409`, saldo exato (`value` + 200 passa, + 199 falha), tarifa no extrato logo acima da `TRANSFER`, destino na universidade bloqueado, retry, retry depois de `CLOSED`, falha que não consome a chave e chave usada por depósito |
 | `transfer/test_transfer_concurrency.py` | 2 | Duas transferências simultâneas que juntas passam do saldo (só uma passa) e a mesma chave em contas diferentes |
 
-O servidor da universidade é simulado por um **mockserver** (serviço `mock` no `docker-compose.yml`). Os testes de concorrência foram rodados 10 vezes seguidas sem falha.
+O servidor da universidade é simulado por um **mockserver** (serviço `mock` no `docker-compose.yml`). Os 6 testes de concorrência foram rodados 10 vezes seguidas sem falha.
+
+Algumas verificações só existiriam olhando o banco e foram trocadas pelo que o cliente vê. Por exemplo, a ligação da `FEE` com a `TRANSFER` é conferida pelo extrato (a `FEE` logo acima, com o mesmo `created_at`), e não pela coluna `related_transaction_id`. A ligação entre a conta e o estudante dono dela não é testada, porque a API não a expõe.
 
 ---
 
@@ -278,8 +345,11 @@ O servidor da universidade é simulado por um **mockserver** (serviço `mock` no
 - **O contrato do servidor da universidade foi assumido:** `200` é aluno, `404` não é aluno, e qualquer outra resposta é indisponibilidade.
 - **Chave perdida não é recuperável.** Repetir o cadastro ou a criação de conta dá `409`.
 - **As chaves das contas institucionais estão fixas no repositório.** Elas são públicas por natureza (o estudante precisa delas para pagar), e nenhuma conta institucional pode ser origem de transferência ou receber depósito. Em produção, viriam de um processo de operação.
-- **Conta `CLOSED`** pode reter saldo que ninguém movimenta, e não existe rota para fechar contas. O `status` de uma conta institucional de destino é lido sem lock. Uma futura rota de encerramento precisa adquirir o mesmo lock.
-- **Paginação por `page` e `limit`** (do extrato, quando existir) não é estável se entrarem transações entre duas chamadas.
+- **Conta encerrada não pode ser reaberta nem consultada.** Como o encerramento exige saldo zero, nenhum dinheiro fica preso, mas o histórico da conta também deixa de ser visível para o próprio estudante.
+- **Esvaziar uma conta tem um piso.** Para chegar a saldo zero, o estudante precisa transferir o saldo inteiro, e a tarifa de 200 centavos sai junto. Uma conta com saldo entre 1 e 200 centavos não consegue ser esvaziada nem encerrada, porque não existe saque e nenhuma transferência cabe no saldo.
+- **O `status` de uma conta institucional de destino é lido sem lock.** Hoje isso não tem efeito, porque contas institucionais não podem ser encerradas.
+- **Paginação por `page` e `limit`** não é estável se entrarem transações entre duas chamadas: uma linha pode se repetir ou ser pulada.
+- **Nomes de estudantes não são únicos**, então a outra ponta do extrato pode parecer ambígua. E o extrato de uma instituição lista os nomes de quem pagou a ela.
 
 ---
 
@@ -287,10 +357,9 @@ O servidor da universidade é simulado por um **mockserver** (serviço `mock` no
 
 | Item | Situação |
 |---|---|
-| `GET /account/{account_key}` (saldo) | Contrato definido, não implementado |
-| `GET /account/{account_key}/transactions` (extrato) | Contrato definido, não implementado. A outra ponta aparece como `counterparty_type`, `counterparty_name` (só para estudante) e `counterparty_account_key` (só para instituição), para não vazar a chave de um estudante no extrato de outro |
 | Conferência do nome junto à universidade | Depende do contrato real do servidor externo |
-| Refatoração | A função `send_simultaneously` está duplicada nos testes de concorrência. A constante com o nome da restrição de idempotência está repetida nos dois controllers |
+| Códigos e caminho assumidos | `QIT001016`, `QIT001017`, o caminho `/close` e o `409 QIT001002` no extrato de conta encerrada foram propostos e precisam ser confirmados pelo time |
+| Refatoração | A função `send_simultaneously` está duplicada nos dois arquivos de concorrência, e os testes de concorrência de `/student`, `/account` e encerramento repetem a mesma estrutura. A constante com o nome da restrição de idempotência está repetida nos controllers de `/transfer` e `/deposit` |
 
 ---
 
@@ -309,5 +378,6 @@ O `bootcamp-rfc-modelo.md` tem trechos que não correspondem mais ao sistema:
 | `201` com `transaction_key` no `/student` | `201` com `student_key` |
 | Diagrama ER sem tipo de conta, status, tarifa, idempotência e datas | Ver a seção 3 |
 | "Idempotência: se 2 transações ocorrem ao mesmo tempo, o sistema deve efetuar primeiro uma, depois a outra" | Isso descreve **serialização** (o lock). Idempotência é a mesma requisição repetida não ter efeito duas vezes (a `Idempotency-Key`). Os dois conceitos aparecem separados na seção 4 |
-| Fora do escopo: "consulta do extrato por contas institucionais" | Pela decisão do time, saldo e extrato podem ser consultados para qualquer conta, inclusive institucional |
+| Fora do escopo: "consulta do extrato por contas institucionais" | Pela decisão do time, saldo e extrato podem ser consultados para qualquer conta, inclusive institucional. O que não pode ser consultado é conta encerrada |
+| Não há rota de encerramento de conta | Existe `POST /account/{account_key}/close`, só para conta de estudante e só com saldo zero |
 | Imagens dos fluxos (`image.png`, `image-1.png`, `image-2.png`) | Os fluxos mudaram. A seção 4 tem a versão atual em texto |
