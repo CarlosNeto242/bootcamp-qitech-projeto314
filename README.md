@@ -50,7 +50,15 @@ Para desligar: `Ctrl+C` e depois `docker compose down`. Para desligar **e apagar
 
 ## 3. Rodar os testes
 
-**Uma vez só, na raiz do projeto, instale as dependências de teste num ambiente virtual:**
+Os testes precisam de três bibliotecas que não vêm com o Python: `pytest`, `requests` e `python-dotenv`. Se o seu Python já tem as três, pule direto para o `pytest`. Senão, instale **uma vez só**, na raiz do projeto, por um dos dois caminhos:
+
+**Opção A: direto no Python da máquina (mais simples)**
+
+```bash
+pip install -r requirements-dev.txt
+```
+
+**Opção B: num ambiente virtual (isola as bibliotecas deste projeto)**
 
 ```bash
 python -m venv .venv
@@ -59,7 +67,9 @@ source .venv/bin/activate       # Linux ou Mac
 pip install -r requirements-dev.txt
 ```
 
-**Toda vez, com a API de pé, em outro terminal (com o ambiente ativado):**
+Na opção B, ative o ambiente sempre que abrir um terminal novo para rodar os testes.
+
+**Toda vez, com a API de pé, em outro terminal:**
 
 ```bash
 pytest
@@ -153,7 +163,7 @@ No Windows, use o **Git Bash** para esses comandos. No PowerShell, `curl` é out
 | `Não consegui falar com a API` | A API não está de pé, ou ainda não está `healthy`. Rode `docker compose up` e espere |
 | `docker` não é reconhecido | O Docker Desktop não está aberto, ou o terminal foi aberto antes da instalação |
 | `port is already allocated` | Outra coisa usa a porta. Crie um `.env` com `API_PORT=3001` (ou `DB_PORT`, `MOCK_PORT`) |
-| `pytest` não é reconhecido | O ambiente virtual não está ativado. Rode o comando de ativação da seção 3 |
+| `pytest` não é reconhecido, ou `No module named 'requests'` | As bibliotecas de teste não estão instaladas: rode `pip install -r requirements-dev.txt`. Se você usou o ambiente virtual (opção B), ele não está ativado |
 | Testes de concorrência falham com `500` | O banco foi criado com um `database.sql` antigo. Recrie com `docker compose down -v` e `docker compose up --build` |
 
 ---
