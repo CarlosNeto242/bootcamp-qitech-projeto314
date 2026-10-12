@@ -74,3 +74,14 @@ class RequestGenerator:
         )
 
         return response.response_status, response.response_json
+
+    @staticmethod
+    def GET_account_transactions(account_key: str, params: dict = None) -> tuple:
+        response = ClientRequisition.send(
+            "GET",
+            f"/account/{account_key}/transactions",
+            headers={"INTERNAL-TOKEN": INTERNAL_TOKEN},
+            query_params=params,
+        )
+
+        return response.response_status, response.response_json
