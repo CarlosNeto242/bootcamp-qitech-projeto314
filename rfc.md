@@ -6,29 +6,9 @@
 | **Data** | 28/09/2026 |
 | **Versão** | 1.7 |
 
-> **Como usar este modelo** *(apague este bloco antes de entregar)*
->
-> - *Cada seção abre com um bloco em itálico: o que escrever, as perguntas a responder e o tamanho
->   esperado. **Apague a orientação** e escreva no lugar dela. Não acrescente seções.*
-> - *O destaque **Principal desafio** aparece **na seção onde o desafio mora** — se a parte difícil
->   é o modelo de dados, ele fica em Banco de Dados; se é concorrência ou ordem de passos, fica em
->   Fluxos. Normalmente há **um**; se houver dois de peso igual, cada um fica na sua seção.*
-> - *Neste modelo o destaque aparece uma única vez, em Fluxos, como exemplo de posicionamento.*
-> - *Alvo de tamanho: 2 a 4 páginas. O repositório-base (`bootcamp-base-api`, Python + FastAPI +
->   PostgreSQL + Docker) é o ponto de partida; o desenho é do seu time.*
-
 ## Contextualização
 
 ### Entendendo o problema
-
-> *O que o sistema precisa fazer e por que isso é difícil. Responda:*
->
-> - *Que operações o sistema oferece e quem as usa?*
-> - *Que garantia ele precisa dar em cima do dinheiro? O que acontece se der errado — saldo
->   divergente, transação duplicada, extrato que não reconstrói o saldo, dado que some?*
-> - *O que está **fora do escopo** desta entrega?*
->
-> *5 a 10 linhas. Não entra aqui: solução, rota, tabela, nome de biblioteca.*
 
 O sistema bancário universitário tem como usuário o estudante. Ele pode se cadastrar, criar sua conta, depositar dinheiro para essa conta, transferir dinheiro sob-tarifa para outros(as) estudantes ou entidades do ecossistema universitário e consultar seu extrato. O sistema deve garantir o seguinte:
 
@@ -41,17 +21,6 @@ O sistema bancário universitário tem como usuário o estudante. Ele pode se ca
 Fora do escopo da entrega: validação da origem externa dos depósitos, transação se originando nas contas institucionais e consulta do extrato por contas institucionais.
 
 ### Explicando a solução de forma macro
-
-> *A ideia em um parágrafo: quais são as peças e como elas se encaixam para dar a garantia da seção
-> anterior. Um desenho de caixas ajuda, se você tiver um.*
->
-> *Depois, **o que foi considerado e descartado** — uma linha por alternativa, com o preço de cada
-> uma. É o que a R7 cobra: as decisões tomadas **e** as descartadas. Forma sugerida:*
->
-> - *`<alternativa descartada>` — descartada porque `<o que ela custava>`. Ganharia se
->   `<cenário em que ela seria a melhor escolha>`.*
->
-> *1 parágrafo + 2 a 4 alternativas. Não entra aqui: rota, tabela, passo a passo.*
 
 Três tabelas: `student`, `account` e `transaction`. O estudante é verificado junto ao servidor da universidade e só então gravado. Cada estudante tem no máximo uma conta `STUDENT`. As contas `INSTITUTIONAL` (universidade, cantina e estacionamento) são criadas por seed e só recebem dinheiro. Toda movimentação é uma linha em `transaction`, de um dos três tipos: `DEPOSIT`, `TRANSFER` ou `FEE`. O saldo não é armazenado: ele é calculado somando as linhas em que a conta é destino e subtraindo as linhas em que ela é origem. Cada transferência gera também uma `FEE` de R$ 2,00 para a conta da universidade, que funciona como conta de tarifas.
 
@@ -66,16 +35,6 @@ Concorrência e repetição são tratadas no banco: lock pessimista (`SELECT ...
 ## Implementação
 
 ### Rotas
-
-> *Uma linha por rota, na tabela abaixo. Regras:*
->
-> - *Status de erro **explícitos** — `400`, `404`, `409`, `422`, e em que situação cada um sai. Não
->   basta escrever "erro".*
-> - *Diga se a rota é **idempotente** e, se for, o que a torna idempotente (qual campo, qual
->   restrição). Repetir a mesma requisição é tema da Aula 2.*
-> - *Em "Entrada", só os campos que importam para a decisão — não é o schema completo.*
->
-> *Não entra aqui: código.*
 
 Todas as rotas, exceto `/` e `/health_check`, exigem o header **`INTERNAL-TOKEN`**, herdado do `base-service`. Sem ele, a resposta é `403 QIT000002`, antes de qualquer validação da rota. Ele **não é autenticação de estudante**: todos os clientes usam o mesmo valor.
 
@@ -156,17 +115,10 @@ erDiagram
 
 ### Fluxos
 
-> *Para cada operação principal, dois caminhos:*
->
-> - *o **caminho feliz**, em passos numerados ou diagrama de sequência;*
-> - ***pelo menos um caminho de falha** — o mais provável ou o mais caro.*
->
-> *Onde houver transação, concorrência ou retentativa, o passo diz o que acontece: o que é travado,
-> o que é desfeito, o que o cliente recebe de volta. Não entra aqui: repetir o que a tabela de rotas
-> já disse.*
+Link do Whimscal para melhor visualização: https://whimsical.com/bootcamp2/fluxos-Uq8pBwVatqN26ap3qpyKff
 
 #### Fluxo de cadastro de estudante 
-![alt text](image-4.png)
+![alt text](image.png)
 Cadastro - **caminho feliz**
 
 1. O schema valida o corpo.
@@ -176,7 +128,6 @@ Cadastro - **caminho feliz**
 5. `COMMIT` e `201` com a `student_key`.
 
 **Cadastro — falha: Estudante já cadastrado**
-![alt text](image.png)
 1. A universidade confirma o aluno.
 2. O `INSERT` viola o `UNIQUE(document_number)`.
 3. A API responde `409 QIT001004`. A consulta à universidade vem antes de propósito: quem não é aluno recebe `422`, e não descobre se um CPF está cadastrado.
@@ -209,7 +160,7 @@ Depósito - **caminho feliz**
 8. `INSERT` do `DEPOSIT`, sem origem e com destino na conta.
 9. `COMMIT` e `201` com a `transaction_key`.
 
-Criação de Conta — **falha: API dá "retry"**
+Depósito — **falha: API dá "retry"**
 
 1. No passo 6, a API encontra uma transação com a mesma chave, do tipo `DEPOSIT`, com o mesmo `value` e na mesma conta.
 2. `COMMIT` sem gravar nada e `201` com a `transaction_key` original.
@@ -255,7 +206,7 @@ Transferência - **Falha: duas requisições com a mesma chave ao mesmo tempo, e
 >   - `TRANSFER` e `FEE` no mesmo `COMMIT`: ou as duas existem, ou nenhuma.
 
 #### Fluxo de Analisar uma Conta 
-![alt text](image-3.png)
+![alt text](image-4.png)
 
 **Caminho feliz**
 1. O resource valida a `account_key` do caminho (formato UUID).
@@ -302,7 +253,6 @@ O saldo devolvido é uma fotografia do instante e não serve como checagem antes
 2. Se o encerramento trava primeiro, ele vê saldo zero e fecha. O depósito espera, lê o `status` atualizado junto com o lock e recebe `409 QIT001002`.
 3. Se o depósito trava primeiro, ele grava. O encerramento espera, calcula o saldo depois do lock, vê o valor depositado e recebe `409 QIT001016`.
 4. Em nenhuma ordem a conta termina fechada com dinheiro dentro.
-
 
 
 
