@@ -149,7 +149,7 @@ class UniversityUnavailable(QIException):
 
 class StudentNotVerified(QIException):
     
-    code = "QIT001015"
+    code = "QIT001016"
 
     def __init__(self, birthdate) -> None:
         title = "Unprocessable Entity"

@@ -1,6 +1,6 @@
 from controllers.base_controller import BaseController
 from dtos.account_dto import AccountDTO
-from errors import NotFoundStudent
+from errors import StudentOrAccountDoesNotExist
 from repositories.account_repository import AccountRepository
 from repositories.student_repository import StudentRepository
 
@@ -22,7 +22,7 @@ class AccountController(BaseController):
         student = self.student_repository.get_by_key(student_key)
 
         if student is None:
-            raise NotFoundStudent(student_key)
+            raise StudentOrAccountDoesNotExist(student_key)
 
         account = self.account_repository.create(student=student)
 
