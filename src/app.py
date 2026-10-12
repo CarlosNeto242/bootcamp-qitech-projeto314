@@ -9,12 +9,11 @@ from middlewares import (
     register_request_logger_middleware,
     register_session_manager_middleware,
 )
-from resources import HealthCheckResource, StudentResource, AccountResource
+from resources import HealthCheckResource, TransferResource, StudentResource, AccountResource
 from utils.logger import setup_logging
 
 
 def create_app() -> FastAPI:
-
     application = FastAPI(
         docs_url=None,
         redoc_url=None,
@@ -27,6 +26,7 @@ def create_app() -> FastAPI:
     register_request_context_middleware(application)
 
     health_check_resource = HealthCheckResource()
+    transfer_resource = TransferResource()
     student_resource = StudentResource()
     account_resource = AccountResource()
 
@@ -35,6 +35,11 @@ def create_app() -> FastAPI:
         "/health_check",
         health_check_resource.on_get_health_check,
         methods=["GET"]
+    )
+    application.add_api_route(
+        "/transfer",
+        transfer_resource.on_post,
+        methods=["POST"]
     )
     application.add_api_route(
         "/student",
@@ -53,8 +58,6 @@ def create_app() -> FastAPI:
 
 
 def main() -> FastAPI:
-    # Não deixa a API subir com configuração faltando: é melhor falhar
-    # agora, na hora de ligar, do que na cara do cliente mais tarde.
     check_variables()
     error_verification()
     setup_logging()

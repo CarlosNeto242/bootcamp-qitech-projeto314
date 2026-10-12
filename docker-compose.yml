@@ -39,6 +39,8 @@ services:
       # nesta lista NAO CHEGA no container: o compose repassa o que
       # esta escrito aqui, e mais nada. Sem estas tres linhas, mexer
       # nos BANKSLIP_* do .env nao teria efeito nenhum aqui dentro.
+      
+      FEE_ACCOUNT_KEY: ${FEE_ACCOUNT_KEY:-26ccf53d-7a91-41bf-acc2-09a93743f423}
       UNIVERSITY_API_URL: ${UNIVERSITY_API_URL:-http://mock:1080}
       UNIVERSITY_API_INTERNAL_TOKEN: ${UNIVERSITY_API_INTERNAL_TOKEN:-default_token}
       UNIVERSITY_API_TIMEOUT: ${UNIVERSITY_API_TIMEOUT:-5}

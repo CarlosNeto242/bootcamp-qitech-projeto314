@@ -19,7 +19,7 @@ class Account(Base):
     status = Column(Enum(ACTIVE, CLOSED, name="account_status", create_type=False), nullable=False)
     created_at = Column(DateTime, nullable=False, server_default=func.now())
 
-    _table_args_ = (
+    __table_args__ = (
         UniqueConstraint("account_key"),
         UniqueConstraint("student_id"),
         CheckConstraint(
