@@ -50,13 +50,8 @@ Valores em **centavos**. `value` é inteiro, de 1 a **200.000.000** (R$ 2.000.00
 | `GET` | `/account/{account_key}` | Conta com saldo calculado | `account_key` no caminho | **Não implementada** | — |
 | `GET` | `/account/{account_key}/transactions` | Extrato paginado | Caminho: `account_key`. Query: `page` (≥ 0), `limit` (1 a 100) | **Não implementada** | — |
 
-### Banco de Dados (Somente diagrama)
+### Banco de Dados
 
-> *Só o diagrama. Entidades, chaves, relacionamentos e os campos que importam para o desafio: o que
-> garante unicidade, o que guarda estado, o que registra quando aconteceu, o identificador que sai
-> na resposta. **Sem prosa nesta seção** — se o principal desafio do seu desenho é o modelo de
-> dados, o único texto aqui é o destaque "Principal desafio". Substitua o esqueleto abaixo pelo seu
-> diagrama.*
 
 ```mermaid
 erDiagram
