@@ -2,12 +2,13 @@ from uuid import uuid4
 
 from sqlalchemy import create_engine, text
 
+from tests.utils.requisition import BaseConnectorResponse
+from tests.utils.payload_generator import PayloadGenerator
 from tests.utils.db_utils import DbUtils
 from tests.utils.random_generator import RandomGenerator
-
-UNIVERSITY_ACCOUNT_KEY = "26ccf53d-7a91-41bf-acc2-09a93743f423"
-CANTEEN_ACCOUNT_KEY = "06d8b86d-6d68-402d-9c8a-e089230f16ce"
-PARKING_ACCOUNT_KEY = "e2f33a85-efb7-4bc5-afde-4ffe5229f7f3"
+from tests.utils.request_generator import RequestGenerator
+from tests.utils.mock_generator import UniversityMock
+from tests.utils.mock_utils import Mock
 
 
 class ObjectGenerator:
@@ -25,6 +26,17 @@ class ObjectGenerator:
                 return result.fetchall()
         finally:
             engine.dispose()
+
+    @staticmethod
+    def create_student() -> BaseConnectorResponse:
+        student_payload = PayloadGenerator.create_student_payload()
+
+        UniversityMock.GET_university_student(student_payload["document_number"])
+
+        status, response = RequestGenerator.POST_student(student_payload)
+        assert status == 201
+
+        return response
 
     @staticmethod
     def create_student_account(balance: int = 0, name: str = "Maria da Silva") -> str:

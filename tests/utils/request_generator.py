@@ -7,13 +7,7 @@ INTERNAL_TOKEN = environ.get("INTERNAL_TOKEN", "default_token")
 
 
 class RequestGenerator:
-    @staticmethod
-    def POST_transfer(
-        transfer_payload: dict,
-        idempotency_key: str = None,
-        internal_token: str = INTERNAL_TOKEN,
-    ) -> tuple:
-        headers = {}
+
     def POST_sample_entity(sample_entity_payload: dict) -> BaseConnectorResponse:
         response = ClientRequisition.send(
             "POST",
@@ -36,6 +30,17 @@ class RequestGenerator:
         return response.response_status, response.response_json
 
     @staticmethod
+    def POST_account(account_payload: dict) -> BaseConnectorResponse:
+        response = ClientRequisition.send(
+            "POST",
+            "/account",
+            payload=account_payload,
+            headers={"INTERNAL-TOKEN": INTERNAL_TOKEN},
+        )
+
+        return response.response_status, response.response_json
+
+    @staticmethod
     def GET_sample_entity(sample_entity_key: str) -> BaseConnectorResponse:
         response = ClientRequisition.send(
             "GET",
@@ -44,6 +49,13 @@ class RequestGenerator:
         )
         return response.response_status, response.response_json
 
+    @staticmethod
+    def POST_transfer(
+        transfer_payload: dict,
+        idempotency_key: str = None,
+        internal_token: str = INTERNAL_TOKEN,
+    ) -> tuple:
+        headers = {}
         if internal_token is not None:
             headers["INTERNAL-TOKEN"] = internal_token
 

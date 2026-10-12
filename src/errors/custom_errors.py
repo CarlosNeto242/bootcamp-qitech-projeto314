@@ -1,7 +1,7 @@
 from errors import QIException
 
 
-class NotFoundSampleEntity(QIException):
+class NotFoundStudent(QIException):
     code = "QIT001001"
 
     def __init__(self, sample_entity_key) -> None:
@@ -113,4 +113,15 @@ class StudentNotVerified(QIException):
         http_status = 422
         description = "Student could not be verified by the university"
         translation = "O estudante não foi reconhecido pela universidade"
+        super().__init__(title, self.code, http_status, description, translation)
+
+class DuplicatedAccount(QIException):
+    
+    code = "QIT001016"
+
+    def __init__(self) -> None:
+        title = "Unprocessable Entity"
+        http_status = 422
+        description = "This student already has an account"
+        translation = "O estudante já tem uma conta"
         super().__init__(title, self.code, http_status, description, translation)

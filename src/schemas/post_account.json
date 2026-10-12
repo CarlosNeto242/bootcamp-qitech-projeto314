@@ -1,0 +1,13 @@
+{
+    "type": "object",
+    "properties": {
+        "student_key": {
+            "type": "string",
+            "format": "uuid"
+        }
+    },
+    "required": [
+        "student_key"
+    ],
+    "additionalProperties": false
+}
