@@ -28,6 +28,26 @@ class ObjectGenerator:
             engine.dispose()
 
     @staticmethod
+    def get_account(account_key: str) -> dict:
+        rows = ObjectGenerator._execute(
+            "SELECT a.type, a.status, s.student_key "
+            "FROM account a LEFT JOIN student s ON s.id = a.student_id "
+            "WHERE a.account_key = :account_key",
+            {"account_key": account_key},
+        )
+        if not rows:
+            return None
+        return {"type": rows[0][0], "status": rows[0][1], "student_key": rows[0][2]}
+
+    @staticmethod
+    def count_students(document_number: str) -> int:
+        rows = ObjectGenerator._execute(
+            "SELECT COUNT(*) FROM student WHERE document_number = :document_number",
+            {"document_number": document_number},
+        )
+        return rows[0][0]
+
+    @staticmethod
     def create_student() -> BaseConnectorResponse:
         student_payload = PayloadGenerator.create_student_payload()
 
