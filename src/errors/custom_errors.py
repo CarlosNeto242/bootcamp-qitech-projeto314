@@ -131,3 +131,25 @@ class StudentNotVerified(QIException):
         description = "The document number and name do not match a university student."
         translation = "O CPF e o nome não correspondem a um estudante da universidade."
         super().__init__(title, self.code, http_status, description, translation)
+
+
+class AccountWithBalance(QIException):
+    code = "QIT001016"
+
+    def __init__(self) -> None:
+        title = "Account With Balance"
+        http_status = 409
+        description = "The account balance must be zero to close it."
+        translation = "A conta só pode ser encerrada com saldo zero."
+        super().__init__(title, self.code, http_status, description, translation)
+
+
+class DeniedAccountClosing(QIException):
+    code = "QIT001017"
+
+    def __init__(self) -> None:
+        title = "Denied Account Closing"
+        http_status = 409
+        description = "Only student accounts can be closed."
+        translation = "Só contas de estudante podem ser encerradas."
+        super().__init__(title, self.code, http_status, description, translation)

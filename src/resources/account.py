@@ -33,6 +33,17 @@ class AccountResource:
             status_code=http_status.HTTP_200_OK,
         )
 
+    def on_post_close(self, account_key: str) -> JSONResponse:
+        validate_uuid(account_key, "account_key")
+
+        controller = AccountController()
+        account = controller.close(account_key)
+
+        return JSONResponse(
+            content=jsonable_encoder(account),
+            status_code=http_status.HTTP_200_OK,
+        )
+
     @SchemaHandler.validate_query_params("get_account_transactions.json")
     def on_get_transactions(self, account_key: str, request: Request) -> JSONResponse:
         validate_uuid(account_key, "account_key")

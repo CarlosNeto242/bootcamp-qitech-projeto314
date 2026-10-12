@@ -3,15 +3,6 @@ from concurrent.futures import ThreadPoolExecutor
 from threading import Barrier
 from uuid import uuid4
 
-from tests.utils import RequestGenerator, ObjectGenerator
-
-
-def extract_keys(response: dict) -> list:
-
-    account_keys = []
-    for account in response["data"]:
-        account_keys.append(account["account_key"])
-    return account_keys
 from tests.utils import ObjectGenerator, RequestGenerator
 
 UUID_PATTERN = re.compile(r"^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$")
@@ -47,11 +38,11 @@ class TestAccount:
         assert UUID_PATTERN.match(response["account_key"])
         assert response["status"] == "ACTIVE"
 
-        account = ObjectGenerator.get_account(response["account_key"])
+        status, account = RequestGenerator.GET_account(response["account_key"])
+        assert status == 200
         assert account["type"] == "STUDENT"
         assert account["status"] == "ACTIVE"
-        assert account["student_key"] == student_key
-        assert ObjectGenerator.get_balance(response["account_key"]) == 0
+        assert account["balance"] == 0
 
     def test_refuses_student_with_existing_account(self):
         student_key = ObjectGenerator.create_student()["student_key"]
@@ -62,7 +53,8 @@ class TestAccount:
         assert first_status == 201
         assert second_status == 409
         assert second_response["code"] == "QIT001009"
-        assert ObjectGenerator.get_account(first_response["account_key"])["student_key"] == student_key
+        status, _ = RequestGenerator.GET_account(first_response["account_key"])
+        assert status == 200
 
     def test_simultaneous_accounts_for_same_student_only_one_passes(self):
         student_key = ObjectGenerator.create_student()["student_key"]

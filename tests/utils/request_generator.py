@@ -85,3 +85,13 @@ class RequestGenerator:
         )
 
         return response.response_status, response.response_json
+
+    @staticmethod
+    def POST_account_close(account_key: str) -> tuple:
+        response = ClientRequisition.send(
+            "POST",
+            f"/account/{account_key}/close",
+            headers={"INTERNAL-TOKEN": INTERNAL_TOKEN},
+        )
+
+        return response.response_status, response.response_json

@@ -24,6 +24,10 @@ class AccountRepository:
 
         return account
 
+    def close(self, account: Account) -> None:
+        account.status = Account.CLOSED
+        self.session.flush()
+
     def get_by_keys(self, account_keys: list) -> list:
         return self.session.query(Account).filter(Account.account_key.in_(account_keys)).all()
 

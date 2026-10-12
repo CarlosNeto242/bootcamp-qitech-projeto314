@@ -3,7 +3,13 @@ from sqlalchemy.exc import IntegrityError
 from controllers.base_controller import BaseController
 from dtos import TransactionDTO
 from dtos.account_dto import AccountDTO
-from errors import ClosedAccount, DuplicatedAccount, StudentOrAccountDoesNotExist
+from errors import (
+    AccountWithBalance,
+    ClosedAccount,
+    DeniedAccountClosing,
+    DuplicatedAccount,
+    StudentOrAccountDoesNotExist,
+)
 from models import Account
 from repositories.account_repository import AccountRepository
 from repositories.student_repository import StudentRepository
@@ -57,6 +63,32 @@ class AccountController(BaseController):
             "statement_lines_dto": TransactionDTO.list_statement_lines(rows),
             "is_last_page": is_last_page,
         }
+
+    def close(self, account_key: str) -> dict:
+        self.session.connection(execution_options={"isolation_level": "READ COMMITTED"})
+
+        account = self.account_repository.get_by_key(account_key.lower())
+
+        if account is None:
+            raise StudentOrAccountDoesNotExist()
+
+        if account.type == Account.INSTITUTIONAL:
+            raise DeniedAccountClosing()
+
+        self.account_repository.lock_by_ids([account.id])
+
+        if account.status == Account.CLOSED:
+            raise ClosedAccount()
+
+        if self.account_repository.get_balance(account.id) != 0:
+            raise AccountWithBalance()
+
+        self.account_repository.close(account)
+
+        account_dto = AccountDTO.only_obj_key(account)
+        self.session.commit()
+
+        return account_dto
 
     def _get_open_account(self, account_key: str) -> Account:
         account = self.account_repository.get_by_key(account_key.lower())

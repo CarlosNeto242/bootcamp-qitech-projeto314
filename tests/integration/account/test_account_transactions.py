@@ -59,7 +59,7 @@ class TestAccountTransactions:
         assert response["code"] == "QIT001001"
 
     def test_refuses_closed_account(self):
-        account_key = ObjectGenerator.create_student_account(balance=1000)
+        account_key = ObjectGenerator.create_student_account()
         ObjectGenerator.close_account(account_key)
 
         status, response = RequestGenerator.GET_account_transactions(account_key)

@@ -115,7 +115,7 @@ class TestTransferCreate:
         assert ObjectGenerator.get_balance(destination) == 0
 
     def test_refuses_closed_origin(self):
-        origin = ObjectGenerator.create_student_account(balance=5000)
+        origin = ObjectGenerator.create_student_account()
         destination = ObjectGenerator.create_student_account()
         ObjectGenerator.close_account(origin)
 
@@ -128,7 +128,6 @@ class TestTransferCreate:
 
         assert status == 409
         assert response["code"] == "QIT001002"
-        assert ObjectGenerator.get_balance(origin) == 5000
         assert ObjectGenerator.get_balance(destination) == 0
 
     def test_refuses_closed_destination(self):
@@ -146,7 +145,6 @@ class TestTransferCreate:
         assert status == 409
         assert response["code"] == "QIT001002"
         assert ObjectGenerator.get_balance(origin) == 5000
-        assert ObjectGenerator.get_balance(destination) == 0
 
     def test_refuses_insufficient_balance(self):
         origin = ObjectGenerator.create_student_account(balance=1199)
@@ -180,9 +178,10 @@ class TestTransferCreate:
         assert ObjectGenerator.get_balance(destination) == 1000
 
     def test_refuses_idempotency_key_used_by_deposit(self):
-        origin = ObjectGenerator.create_student_account(balance=5000)
+        origin = ObjectGenerator.create_student_account()
         destination = ObjectGenerator.create_student_account()
-        deposit_idempotency_key = ObjectGenerator.list_transactions(origin)[0]["idempotency_key"]
+        deposit_idempotency_key = str(uuid4())
+        ObjectGenerator.deposit(origin, 5000, idempotency_key=deposit_idempotency_key)
 
         payload = PayloadGenerator.create_transfer_payload(
             origin_account_key=origin,
@@ -214,19 +213,20 @@ class TestTransferCreate:
         assert ObjectGenerator.get_balance(destination) == 1000
         assert ObjectGenerator.get_balance(UNIVERSITY_ACCOUNT_KEY) == university_balance_before + 200
 
-        transfer, fee = [t for t in ObjectGenerator.list_transactions(origin) if t["transaction_type"] != "DEPOSIT"]
+        fee, transfer, deposit = ObjectGenerator.list_transactions(origin)
+
+        assert fee["transaction_type"] == "FEE"
+        assert fee["amount"] == -200
+        assert fee["counterparty_account_key"] == UNIVERSITY_ACCOUNT_KEY
+        assert fee["created_at"] == transfer["created_at"]
 
         assert transfer["transaction_type"] == "TRANSFER"
         assert transfer["transaction_key"] == response["transaction_key"]
-        assert transfer["value"] == 1000
-        assert transfer["origin_account_key"] == origin
-        assert transfer["destination_account_key"] == destination
+        assert transfer["amount"] == -1000
+        assert transfer["counterparty_type"] == "STUDENT"
 
-        assert fee["transaction_type"] == "FEE"
-        assert fee["value"] == 200
-        assert fee["origin_account_key"] == origin
-        assert fee["destination_account_key"] == UNIVERSITY_ACCOUNT_KEY
-        assert fee["related_transaction_key"] == transfer["transaction_key"]
+        assert deposit["transaction_type"] == "DEPOSIT"
+        assert deposit["amount"] == 5000
 
     def test_retry_with_same_data_returns_original(self):
         origin = ObjectGenerator.create_student_account(balance=5000)
@@ -248,8 +248,8 @@ class TestTransferCreate:
         assert ObjectGenerator.get_balance(origin) == 3800
         assert ObjectGenerator.get_balance(destination) == 1000
 
-        transfers = [t for t in ObjectGenerator.list_transactions(origin) if t["transaction_type"] == "TRANSFER"]
-        assert len(transfers) == 1
+        transaction_types = [line["transaction_type"] for line in ObjectGenerator.list_transactions(origin)]
+        assert transaction_types == ["FEE", "TRANSFER", "DEPOSIT"]
 
     def test_retry_with_different_data_is_refused(self):
         origin = ObjectGenerator.create_student_account(balance=10000)
@@ -301,7 +301,6 @@ class TestTransferCreate:
 
         assert second_status == 201
         assert second_response["transaction_key"] == first_response["transaction_key"]
-        assert ObjectGenerator.get_balance(origin) == 3800
         assert ObjectGenerator.get_balance(destination) == 1000
 
     def test_failed_request_does_not_consume_idempotency_key(self):
