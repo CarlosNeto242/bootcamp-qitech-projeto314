@@ -28,8 +28,10 @@ class StudentController(BaseController):
 
         university_response = self.university_connector.get_by_document_number(document_number)
 
-        if university_response.status != 200:
+        if university_response.status != 200 and university_response.status != 503:
             raise StudentNotVerified(document_number)
+        elif university_response.status == 503:
+            raise UniversityUnavailable
 
         if not is_valid_cpf(document_number):
             raise InvalidDocumentNumber(document_number)

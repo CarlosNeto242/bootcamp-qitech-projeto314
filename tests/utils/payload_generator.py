@@ -1,4 +1,6 @@
-from tests.utils.object_generator import CANTEEN_ACCOUNT_KEY
+from tests.utils.constants import CANTEEN_ACCOUNT_KEY
+
+from tests.utils.random_generator import RandomGenerator
 
 
 class PayloadGenerator:
@@ -21,6 +23,24 @@ class PayloadGenerator:
         }
         return payload
 
+    @staticmethod
+    def create_student_payload(
+        name: str = None,
+        document_number: str = None,
+    ) -> dict:
+
+        if name is None:
+            name = "Maria da Silva"
+
+        if document_number is None:
+            document_number = RandomGenerator.generate_cpf()
+
+        payload = {
+            "name": name,
+            "document_number": document_number,
+        }
+        return payload
+     
     @staticmethod
     def create_deposit_payload(
         account_key: str = None,

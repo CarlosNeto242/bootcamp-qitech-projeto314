@@ -1,8 +1,9 @@
+from uuid import uuid4
 from sqlalchemy import text
 
 from database import Context
-from models import Account
-
+from models.account import Account
+from models.student import Student
 
 class AccountRepository:
     def __init__(self, context: Context) -> None:
@@ -10,6 +11,17 @@ class AccountRepository:
 
     def get_by_key(self, account_key: str) -> Account:
         return self.session.query(Account).filter(Account.account_key == account_key).first()
+    def create(self, student: Student) -> Account:
+        account = Account()
+
+        account.account_key = str(uuid4())
+        account.student_id = student.id
+        account.type = "STUDENT"
+        account.status = "ACTIVE"
+
+        self.session.add(account)
+
+        return account
 
     def get_by_keys(self, account_keys: list) -> list:
         return self.session.query(Account).filter(Account.account_key.in_(account_keys)).all()

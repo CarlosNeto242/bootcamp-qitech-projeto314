@@ -22,7 +22,5 @@ class TestStudent:
         
         status, response = RequestGenerator.POST_student({"name": name, "document_number" : document_number})
 
-        print(response)
-
         assert status == 201
         assert "student_key" in response
