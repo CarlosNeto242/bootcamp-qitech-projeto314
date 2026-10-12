@@ -24,7 +24,6 @@ class StudentController(BaseController):
         self.logger.debug("Criando uma novo estudante")
 
         document_number = student_data["document_number"]
-        name = student_data["name"]
 
         university_response = self.university_connector.get_by_document_number(document_number)
 

@@ -1,15 +1,14 @@
 from uuid import uuid4
 
-from tests.utils import DbUtils, PayloadGenerator, RequestGenerator
+from tests.utils import RequestGenerator
 from tests.utils.mock_generator import UniversityMock
 from tests.utils.mock_utils import Mock
 
 def extract_keys(response: dict) -> list:
-    """As chaves da pagina, na ordem em que a API devolveu."""
-    sample_entity_keys = []
-    for sample_entity in response["data"]:
-        sample_entity_keys.append(sample_entity["sample_entity_key"])
-    return sample_entity_keys
+    student_keys = []
+    for student in response["data"]:
+        student_keys.append(student["account_key"])
+    return student_keys
 
 class TestStudent: 
     def test_creates_student(self):
