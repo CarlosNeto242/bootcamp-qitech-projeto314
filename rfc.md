@@ -38,7 +38,7 @@ O sistema bancário universitário tem como usuário o estudante. Ele pode se ca
 - Atomicidade: A operação deve ser concluída integralmente ou não produzir nenhuma alteração. Se falhar, poderá gerar "alterações parciais" que podem quebrar o banco de dados.
 - Extrato: as informações de cada transação devem estar armazenadas para o usuário poder visualizar. Se falhar, o usuário não terá o extrato disponível
 
-Fora do escopo da entrega: validação da origem externa dos depósitos, transação se originando nas contas institucionais, consulta do extrato por contas institucionais 
+Fora do escopo da entrega: validação da origem externa dos depósitos, transação se originando nas contas institucionais e consulta do extrato por contas institucionais.
 
 ### Explicando a solução de forma macro
 
@@ -53,9 +53,12 @@ Fora do escopo da entrega: validação da origem externa dos depósitos, transa�
 >
 > *1 parágrafo + 2 a 4 alternativas. Não entra aqui: rota, tabela, passo a passo.*
 
-São 3 entidades utilizadas - `students` , `students_account` e `transaction`. O estudante se cadastra na entidade `students` **(número de matrícula como identificador)** utilizando informações pessoais, que serão utilizadas para checar se aquele cadastro é válido. O estudante cadastrado também poderá criar a sua conta bancária verificando suas informações pessoais. Com sua conta em mãos, o estudante poderá efetuar transações, as quais sempre serão armazenadas na entidade `transaction` **(ter uma opção de depósito de conta externa, senão o cara não tem dinheiro)**. Essas transações só deverão acontecer caso o estudante tenha saldo o suficiente e a conta de destino for existente. Caso queira checar seu extrato, uma varredura em `transaction` **(Considerar ideia de árvore)** encontrará todas as transações que estão em seu nome.  Alternativas descartadas: 
+O sistema é composto por três entidades principais — `student`, `account` e `transaction` — e um serviço externo da universidade, responsável por verificar se o `document_number` e o `name` correspondem a um estudante válido. Cada estudante pode possuir uma única `account`, e as movimentações financeiras são registradas como `transaction`, permitindo calcular o saldo a partir do histórico, sem manter duas representações independentes do dinheiro. Os valores são armazenados em centavos inteiros, evitando imprecisões nos cálculos monetários. Cada transferência registra tanto o valor enviado quanto a tarifa de R$ 2,00, na mesma transação de banco, garantindo que ambas as movimentações sejam confirmadas integralmente ou desfeitas. O controle de concorrência impede que operações simultâneas utilizem um mesmo saldo desatualizado, enquanto a idempotência permite reconhecer uma retentativa de uma operação já concluída. Restrições de unicidade no banco complementam essas garantias, impedindo cadastros duplicados mesmo quando requisições concorrentes chegam ao mesmo tempo.
 
-- **Tabela separada de movimentações (`account_movement`)**: Todas informações que essa entidade representa podem ser facilmente colocado na própria entidade de transaction . A criação só traria maior complexidade. Seria útil caso outras “mecânicas” de transação fossem adicionadas (cashback, reembolso, pagamento parcelado…)
+- **Tabela separada de movimentações (`account_movement`)**: Todas informações que essa entidade representa podem ser facilmente colocado na própria entidade de transaction. A criação só traria maior complexidade. Seria útil caso outras “mecânicas” de transação fossem adicionadas (cashback, reembolso, pagamento parcelado…)
+- **Representar valores monetários com números de ponto flutuante (float)**: descartado porque erros de precisão podem comprometer cálculos financeiros. Seria mais adequado para valores aproximados, como medições científicas, e não para movimentações que exigem precisão monetária.
+- **Separar contas de estudante e institucionais em tabelas diferentes**: descartado porque duplicaria a representação de conta e complicaria a relação com `transaction`, que precisa apontar para qualquer tipo de conta. Ganharia se as instituições fossem consideradas usuários ativos do sistema.
+- **Usar CREATED como estado inicial da conta**: descartado porque, no nosso fluxo, a conta é criada e já fica disponível para uso; não existe um período em que a conta esteja criada, mas ainda não esteja ativa. Ganharia se houvesse diferentes "níveis de permissão" em uma conta
 
 ## Implementação
 
