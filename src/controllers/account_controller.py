@@ -2,7 +2,8 @@ from sqlalchemy.exc import IntegrityError
 
 from controllers.base_controller import BaseController
 from dtos.account_dto import AccountDTO
-from errors import DuplicatedAccount, StudentOrAccountDoesNotExist
+from errors import ClosedAccount, DuplicatedAccount, StudentOrAccountDoesNotExist
+from models import Account
 from repositories.account_repository import AccountRepository
 from repositories.student_repository import StudentRepository
 
@@ -32,3 +33,16 @@ class AccountController(BaseController):
         self.session.commit()
 
         return account_dto
+
+    def get_by_key(self, account_key: str) -> dict:
+        account = self.account_repository.get_by_key(account_key.lower())
+
+        if account is None:
+            raise StudentOrAccountDoesNotExist()
+
+        if account.status == Account.CLOSED:
+            raise ClosedAccount()
+
+        balance = self.account_repository.get_balance(account.id)
+
+        return AccountDTO.obj_to_dict(account, balance)

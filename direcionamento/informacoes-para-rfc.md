@@ -53,7 +53,7 @@ Valores em **centavos**. `value` é inteiro, de 1 a **200.000.000** (R$ 2.000.00
 | `POST` | `/account` | Cria a conta do estudante. Sempre `STUDENT` e `ACTIVE` | Corpo: `student_key` (UUID) | `201` com `account_key` e `status`; `400 QIT000001` corpo fora do formato; `404 QIT001001` estudante não existe; `409 QIT001009` estudante já tem conta | Não. Repetir dá `409` |
 | `POST` | `/deposit` | Deposita na conta de um estudante | Corpo: `account_key` (UUID), `value`. Header: `Idempotency-Key` (UUID) | `201` com `transaction_key`; `400 QIT000001` corpo ou header fora do formato; `404 QIT001001` conta não existe; `409 QIT001011` conta institucional; `409 QIT001002` conta `CLOSED`; `409 QIT001010` chave já usada em outra operação | **Sim**, pela `Idempotency-Key` |
 | `POST` | `/transfer` | Transfere de um estudante para outro estudante ou para uma instituição, cobrando a tarifa | Corpo: `origin_account_key`, `destination_account_key` (UUIDs), `value`. Header: `Idempotency-Key` (UUID) | `201` com `transaction_key` da `TRANSFER`; `400 QIT000001` corpo ou header fora do formato; `409 QIT001013` origem e destino iguais; `409 QIT001015` destino é a conta de tarifas; `404 QIT001001` alguma conta não existe; `409 QIT001012` origem institucional; `409 QIT001002` origem ou destino `CLOSED`; `409 QIT001008` saldo menor que `value` + 200; `409 QIT001010` chave já usada em outra operação | **Sim**, pela `Idempotency-Key` |
-| `GET` | `/account/{account_key}` | Conta com saldo calculado | `account_key` no caminho | **Não implementada** | — |
+| `GET` | `/account/{account_key}` | Conta com saldo calculado | `account_key` no caminho | **Em implementação.** `200` com `account_key`, `type`, `status`, `balance` e `created_at`; `400 QIT000001` chave fora do formato; `404 QIT001001` conta não existe; `409 QIT001002` conta `CLOSED` | Sim (leitura) |
 | `GET` | `/account/{account_key}/transactions` | Extrato paginado | Caminho: `account_key`. Query: `page` (≥ 0), `limit` (1 a 100) | **Não implementada** | — |
 
 **Como a idempotência funciona em `/deposit` e `/transfer`:**
@@ -236,7 +236,7 @@ Cada código tem um único status e uma única causa. A API não sobe se dois er
 | `QIT000405` | 405 | Método não permitido na rota (do `base-service`) | — |
 | `QIT000500` | 500 | Erro inesperado | Todas |
 | `QIT001001` | 404 | Estudante ou conta referenciado não existe | `/account`, `/deposit`, `/transfer` |
-| `QIT001002` | 409 | Conta `CLOSED` | `/deposit`, `/transfer` |
+| `QIT001002` | 409 | Conta `CLOSED` | `/deposit`, `/transfer`, `GET /account/{account_key}` |
 | `QIT001003` | 422 | CPF não corresponde a um estudante da universidade | `/student` |
 | `QIT001004` | 409 | CPF já cadastrado | `/student` |
 | `QIT001008` | 409 | Saldo insuficiente para `value` mais a tarifa | `/transfer` |
@@ -278,7 +278,7 @@ O servidor da universidade é simulado por um **mockserver** (serviço `mock` no
 - **O contrato do servidor da universidade foi assumido:** `200` é aluno, `404` não é aluno, e qualquer outra resposta é indisponibilidade.
 - **Chave perdida não é recuperável.** Repetir o cadastro ou a criação de conta dá `409`.
 - **As chaves das contas institucionais estão fixas no repositório.** Elas são públicas por natureza (o estudante precisa delas para pagar), e nenhuma conta institucional pode ser origem de transferência ou receber depósito. Em produção, viriam de um processo de operação.
-- **Conta `CLOSED`** pode reter saldo que ninguém movimenta, e não existe rota para fechar contas. O `status` de uma conta institucional de destino é lido sem lock. Uma futura rota de encerramento precisa adquirir o mesmo lock.
+- **Conta `CLOSED`** pode reter saldo que ninguém movimenta nem consulta: as rotas `GET` recusam conta fechada com `409 QIT001002`, e não existe rota para fechar contas. O `status` de uma conta institucional de destino é lido sem lock. Uma futura rota de encerramento precisa adquirir o mesmo lock.
 - **Paginação por `page` e `limit`** (do extrato, quando existir) não é estável se entrarem transações entre duas chamadas.
 
 ---

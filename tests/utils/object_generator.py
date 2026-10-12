@@ -2,7 +2,6 @@ from uuid import uuid4
 
 from sqlalchemy import create_engine, text
 
-from tests.utils.requisition import BaseConnectorResponse
 from tests.utils.payload_generator import PayloadGenerator
 from tests.utils.db_utils import DbUtils
 from tests.utils.random_generator import RandomGenerator
@@ -48,7 +47,7 @@ class ObjectGenerator:
         return rows[0][0]
 
     @staticmethod
-    def create_student() -> BaseConnectorResponse:
+    def create_student() -> dict:
         student_payload = PayloadGenerator.create_student_payload()
 
         UniversityMock.GET_university_student(student_payload["document_number"])

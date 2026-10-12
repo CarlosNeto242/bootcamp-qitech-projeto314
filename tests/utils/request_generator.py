@@ -1,6 +1,6 @@
 from os import environ
 
-from tests.utils.requisition import ClientRequisition, BaseConnectorResponse
+from tests.utils.requisition import ClientRequisition
 
 
 INTERNAL_TOKEN = environ.get("INTERNAL_TOKEN", "default_token")
@@ -55,11 +55,21 @@ class RequestGenerator:
         return response.response_status, response.response_json
 
     @staticmethod
-    def POST_account(account_payload: dict) -> BaseConnectorResponse:
+    def POST_account(account_payload: dict) -> tuple:
         response = ClientRequisition.send(
             "POST",
             "/account",
             payload=account_payload,
+            headers={"INTERNAL-TOKEN": INTERNAL_TOKEN},
+        )
+
+        return response.response_status, response.response_json
+
+    @staticmethod
+    def GET_account(account_key: str) -> tuple:
+        response = ClientRequisition.send(
+            "GET",
+            f"/account/{account_key}",
             headers={"INTERNAL-TOKEN": INTERNAL_TOKEN},
         )
 
