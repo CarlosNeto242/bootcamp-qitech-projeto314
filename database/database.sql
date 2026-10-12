@@ -8,6 +8,7 @@ CREATE TABLE student(
     student_key                     CHAR(36) NOT NULL,
     name                            VARCHAR(255) NOT NULL,
     document_number                 CHAR(14) NOT NULL,
+    created_at                      TIMESTAMP NOT NULL DEFAULT(NOW()),
     UNIQUE(student_key),
     UNIQUE(document_number)
 );

@@ -16,7 +16,7 @@ class TestStudent:
         Mock().clear()
 
         name = "Aluno Exemplo"
-        document_number = "123.456.789-10"
+        document_number = "529.982.247-25"
 
         UniversityMock.GET_university_student(document_number)
         

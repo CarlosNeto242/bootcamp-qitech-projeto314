@@ -19,14 +19,14 @@ INTERNAL_TOKEN = os.environ.get("INTERNAL_TOKEN")
 # tudo aqui — na sua máquina ele aponta pro mock server do sábado 4; em
 # produção, apontaria pro serviço de verdade. O código não sabe a
 # diferença, e esse é o ponto.
-BANKSLIP_API_URL = os.environ.get("BANKSLIP_API_URL", "http://localhost:8080")
-BANKSLIP_API_INTERNAL_TOKEN = os.environ.get("BANKSLIP_API_INTERNAL_TOKEN", "default_token")
 FEE_ACCOUNT_KEY = os.environ.get("FEE_ACCOUNT_KEY", "26ccf53d-7a91-41bf-acc2-09a93743f423")
+UNIVERSITY_API_URL = os.environ.get("UNIVERSITY_API_URL", "http://localhost:1080")
+UNIVERSITY_API_INTERNAL_TOKEN = os.environ.get("UNIVERSITY_API_INTERNAL_TOKEN", "default_token")
 
 # Quantos segundos esperar pelo serviço de boletos antes de desistir.
 # Todo connector TEM um timeout — o porquê está em
 # src/connectors/rest_connector.py.
-BANKSLIP_API_TIMEOUT = int(os.environ.get("BANKSLIP_API_TIMEOUT", "5"))
+UNIVERSITY_API_TIMEOUT = int(os.environ.get("UNIVERSITY_API_TIMEOUT", "5"))
 
 # Rotas públicas: não exigem o header INTERNAL-TOKEN. São as duas que
 # precisam responder pra quem ainda não tem token nenhum: a raiz, que
