@@ -21,6 +21,7 @@ INTERNAL_TOKEN = os.environ.get("INTERNAL_TOKEN")
 # diferença, e esse é o ponto.
 BANKSLIP_API_URL = os.environ.get("BANKSLIP_API_URL", "http://localhost:8080")
 BANKSLIP_API_INTERNAL_TOKEN = os.environ.get("BANKSLIP_API_INTERNAL_TOKEN", "default_token")
+FEE_ACCOUNT_KEY = os.environ.get("FEE_ACCOUNT_KEY", "26ccf53d-7a91-41bf-acc2-09a93743f423")
 
 # Quantos segundos esperar pelo serviço de boletos antes de desistir.
 # Todo connector TEM um timeout — o porquê está em
