@@ -28,3 +28,14 @@ class RequestGenerator:
             headers=headers,
         )
         return response.response_status, response.response_json
+
+    @staticmethod
+    def POST_student(student_payload: dict) -> tuple:
+        response = ClientRequisition.send(
+            "POST",
+            "/student",
+            payload=student_payload,
+            headers={"INTERNAL-TOKEN": INTERNAL_TOKEN},
+        )
+
+        return response.response_status, response.response_json
