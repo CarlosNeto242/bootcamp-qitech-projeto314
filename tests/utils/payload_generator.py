@@ -20,3 +20,17 @@ class PayloadGenerator:
             "value": value,
         }
         return payload
+
+    @staticmethod
+    def create_deposit_payload(
+        account_key: str = None,
+        value: int = None,
+    ) -> dict:
+        if value is None:
+            value = 1000
+
+        payload = {
+            "account_key": account_key,
+            "value": value,
+        }
+        return payload

@@ -11,12 +11,8 @@ class RequestGenerator:
     def POST_transfer(
         transfer_payload: dict,
         idempotency_key: str = None,
-        internal_token: str = INTERNAL_TOKEN,
     ) -> tuple:
-        headers = {}
-
-        if internal_token is not None:
-            headers["INTERNAL-TOKEN"] = internal_token
+        headers = {"INTERNAL-TOKEN": INTERNAL_TOKEN}
 
         if idempotency_key is not None:
             headers["Idempotency-Key"] = idempotency_key
@@ -25,6 +21,24 @@ class RequestGenerator:
             "POST",
             "/transfer",
             payload=transfer_payload,
+            headers=headers,
+        )
+        return response.response_status, response.response_json
+
+    @staticmethod
+    def POST_deposit(
+        deposit_payload: dict,
+        idempotency_key: str = None,
+    ) -> tuple:
+        headers = {"INTERNAL-TOKEN": INTERNAL_TOKEN}
+
+        if idempotency_key is not None:
+            headers["Idempotency-Key"] = idempotency_key
+
+        response = ClientRequisition.send(
+            "POST",
+            "/deposit",
+            payload=deposit_payload,
             headers=headers,
         )
         return response.response_status, response.response_json
