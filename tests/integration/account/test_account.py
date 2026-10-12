@@ -3,6 +3,15 @@ from concurrent.futures import ThreadPoolExecutor
 from threading import Barrier
 from uuid import uuid4
 
+from tests.utils import RequestGenerator, ObjectGenerator
+
+
+def extract_keys(response: dict) -> list:
+
+    account_keys = []
+    for account in response["data"]:
+        account_keys.append(account["account_key"])
+    return account_keys
 from tests.utils import ObjectGenerator, RequestGenerator
 
 UUID_PATTERN = re.compile(r"^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$")

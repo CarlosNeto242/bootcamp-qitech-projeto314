@@ -5,6 +5,11 @@ from threading import Barrier
 from tests.utils import ObjectGenerator, PayloadGenerator, RequestGenerator
 from tests.utils.mock_generator import UniversityMock
 
+def extract_keys(response: dict) -> list:
+    student_keys = []
+    for student in response["data"]:
+        student_keys.append(student["account_key"])
+    return student_keys
 UUID_PATTERN = re.compile(r"^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$")
 
 
