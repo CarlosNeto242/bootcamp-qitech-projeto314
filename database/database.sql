@@ -44,7 +44,7 @@ CREATE TABLE transaction(
     idempotency_key                 CHAR(36) NOT NULL,
     created_at                      TIMESTAMP NOT NULL DEFAULT(NOW()),
     UNIQUE(transaction_key),
-    UNIQUE(idempotency_key),
+    CONSTRAINT uq_transaction_idempotency_key UNIQUE(idempotency_key),
     CHECK (value > 0)
 );
 

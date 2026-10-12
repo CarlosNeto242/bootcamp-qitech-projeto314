@@ -1,44 +1,35 @@
+from sqlalchemy.exc import IntegrityError
+
 from connectors.university_connector import UniversityConnector
 from controllers.base_controller import BaseController
 from dtos.student_dto import StudentDTO
-from errors import (
-    InvalidDocumentNumber,
-    DuplicatedDocumentNumber,
-    StudentNotVerified,
-    UniversityUnavailable,
-)
+from errors import DuplicatedDocumentNumber, StudentNotVerified, UniversityUnavailable
 from repositories.student_repository import StudentRepository
-from utils.document_number import is_valid_cpf
+
+DOCUMENT_NUMBER_CONSTRAINT = "student_document_number_key"
 
 
 class StudentController(BaseController):
-
     def __init__(self) -> None:
         super().__init__(__name__)
-
         self.student_repository = StudentRepository(self.context)
         self.university_connector = UniversityConnector()
 
     def create(self, student_data: dict) -> dict:
- 
-        self.logger.debug("Criando uma novo estudante")
+        university_response = self.university_connector.get_by_document_number(student_data["document_number"])
 
-        document_number = student_data["document_number"]
+        if university_response.status == 404:
+            raise StudentNotVerified()
 
-        university_response = self.university_connector.get_by_document_number(document_number)
+        if university_response.status != 200:
+            raise UniversityUnavailable()
 
-        if university_response.status != 200 and university_response.status != 503:
-            raise StudentNotVerified(document_number)
-        elif university_response.status == 503:
-            raise UniversityUnavailable
-
-        if not is_valid_cpf(document_number):
-            raise InvalidDocumentNumber(document_number)
-
-        if self.student_repository.get_by_document_number(document_number) is not None:
-            raise DuplicatedDocumentNumber(document_number)
-
-        student = self.student_repository.create(student_data=student_data)
+        try:
+            student = self.student_repository.create(student_data=student_data)
+        except IntegrityError as error:
+            if error.orig.diag.constraint_name == DOCUMENT_NUMBER_CONSTRAINT:
+                raise DuplicatedDocumentNumber()
+            raise
 
         student_dto = StudentDTO.only_obj_key(student)
         self.session.commit()

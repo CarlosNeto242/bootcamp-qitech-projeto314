@@ -4,6 +4,7 @@ from threading import Barrier
 
 from tests.utils import ObjectGenerator, PayloadGenerator, RequestGenerator
 from tests.utils.mock_generator import UniversityMock
+from tests.utils.mock_utils import Mock
 
 def extract_keys(response: dict) -> list:
     student_keys = []
@@ -73,6 +74,7 @@ class TestStudent:
         status, _ = RequestGenerator.POST_student(payload)
         assert status == 201
 
+        Mock().clear()
         UniversityMock.GET_university_student_not_found(payload["document_number"])
 
         status, response = RequestGenerator.POST_student(payload)

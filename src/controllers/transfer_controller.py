@@ -17,7 +17,7 @@ from models import Account, Transaction
 from repositories import AccountRepository, TransactionRepository
 
 FEE_VALUE = 200
-IDEMPOTENCY_KEY_CONSTRAINT = "transaction_idempotency_key_key"
+IDEMPOTENCY_KEY_CONSTRAINT = "uq_transaction_idempotency_key"
 
 
 class TransferController(BaseController):

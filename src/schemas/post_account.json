@@ -1,13 +1,14 @@
 {
-    "type": "object",
-    "properties": {
-        "student_key": {
-            "type": "string",
-            "format": "uuid"
-        }
-    },
-    "required": [
-        "student_key"
-    ],
-    "additionalProperties": false
+  "title": "PostAccount",
+  "type": "object",
+  "properties": {
+    "student_key": {
+      "type": "string",
+      "pattern": "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$"
+    }
+  },
+  "required": [
+    "student_key"
+  ],
+  "additionalProperties": false
 }

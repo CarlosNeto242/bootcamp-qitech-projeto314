@@ -22,40 +22,13 @@ class ClosedAccount(QIException):
         translation = "A conta está encerrada e não pode ser movimentada."
         super().__init__(title, self.code, http_status, description, translation)
 
-class InvalidDocumentNumber(QIException):
-    """O CPF tem o formato certo e não existe.
-
-    422, e não 400, de propósito: 400 quer dizer "não consegui ler o seu
-    pedido". Aqui a API leu, entendeu, e o valor é que não pode existir —
-    os dois últimos dígitos não batem com a conta. A diferença está
-    explicada em src/utils/document_number.py.
-    """
-
-    code = "QIT001003"
-
-    def __init__(self, document_number) -> None:
-        title = "Invalid Document Number"
-        http_status = 422
-        description = f"The document number {document_number} is not a valid CPF."
-        translation = "O CPF informado não é válido."
-        super().__init__(title, self.code, http_status, description, translation)
-
-
-
 class DuplicatedDocumentNumber(QIException):
-    """Já existe um cadastro com este CPF.
-
-    409 Conflict: o pedido está correto em si, e o que impede é o que já
-    está no banco. É a mesma família do SampleEntityFinalStatus aqui em
-    cima — conflito com o que já existe, não erro de quem pediu.
-    """
-
     code = "QIT001004"
 
-    def __init__(self, document_number) -> None:
-        title = "Document Number already registered"
+    def __init__(self) -> None:
+        title = "Document Number Already Registered"
         http_status = 409
-        description = f"There is already an entity with the document number {document_number}."
+        description = "There is already a student with this document number."
         translation = "Já existe um cadastro com este CPF."
         super().__init__(title, self.code, http_status, description, translation)
 
@@ -125,8 +98,8 @@ class SelfTransfer(QIException):
         translation = "A conta não pode transferir para si mesma."
         super().__init__(title, self.code, http_status, description, translation)
 
-class UniversityUnavailable(QIException):
 
+class UniversityUnavailable(QIException):
     code = "QIT001014"
 
     def __init__(self) -> None:
@@ -147,13 +120,14 @@ class DeniedDestinationAccount(QIException):
         translation = "A conta de destino não pode receber transferências."
         super().__init__(title, self.code, http_status, description, translation)
         
-class StudentNotVerified(QIException):
-    
-    code = "QIT001016"
 
-    def __init__(self, birthdate) -> None:
-        title = "Unprocessable Entity"
+
+class StudentNotVerified(QIException):
+    code = "QIT001003"
+
+    def __init__(self) -> None:
+        title = "Student Not Verified"
         http_status = 422
-        description = "Student could not be verified by the university"
-        translation = "O estudante não foi reconhecido pela universidade"
+        description = "The document number and name do not match a university student."
+        translation = "O CPF e o nome não correspondem a um estudante da universidade."
         super().__init__(title, self.code, http_status, description, translation)

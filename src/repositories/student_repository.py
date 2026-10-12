@@ -16,6 +16,8 @@ class StudentRepository:
         student.document_number = student_data["document_number"]
 
         self.session.add(student)
+        self.session.flush()
+
         return student
 
     def get_by_key(self, student_key: str) -> Student:

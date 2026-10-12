@@ -16,10 +16,11 @@ class AccountRepository:
 
         account.account_key = str(uuid4())
         account.student_id = student.id
-        account.type = "STUDENT"
-        account.status = "ACTIVE"
+        account.type = Account.STUDENT
+        account.status = Account.ACTIVE
 
         self.session.add(account)
+        self.session.flush()
 
         return account
 
